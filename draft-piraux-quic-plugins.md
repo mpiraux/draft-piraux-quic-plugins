@@ -53,6 +53,7 @@ informative:
       - ins: Q. De Coninck
       - ins: F. Michel
       - ins: M. Piraux
+      - ins: F. Rochet
       - ins: T. Given-Wilson
       - ins: A. Legay
       - ins: O. Pereira
@@ -240,9 +241,10 @@ allows controlling the other peer behavior.
 Injecting a QUIC Plugin to a QUIC implementation requires several
 modifications. First, an execution environment is required to execute the
 plugin, as it is not consisting of executable machine code. This environment
-executes the bytecode of QUIC Plugins. This bytecode is portable and has a
-limited instruction set, such as eBPF or WebAssembly bytecode. The plugin runs
-thus in an isolated environment inside the QUIC implementation.
+compiles (JIT) the bytecode of QUIC Plugins and then exectute the native
+instructions. The bytecode is a portable reduced instruction set, such
+as eBPF or WebAssembly bytecode. The plugin runs thus inside an isolated
+environment implemented by a RISC architecture linked to the QUIC implementation.
 
 The QUIC implementation is responsible for interacting with the plugin, i.e.
 running its bytecode and providing restricted access to the QUIC connection
@@ -270,16 +272,40 @@ transport parameters have been exchanged, plugins exchange can take place next
 to the data transfer, using a new dedidcated stream type akin to the crypto
 stream.
 
-# Trusting QUIC Plugins
+# QUIC Plugins Authenticity
+
+Several options are possible under different threat models and offering
+different security properties. Two of them are described in the following
+sections.
+
+## Central Authorities
 
 Each QUIC Plugin MUST be associated to some level of trust regarding its origin.
-For instance, a QUIC Plugin MAY be authenticated using a certificate. A QUIC
-implementation accepting plugins MAY restrict the exchange of QUIC Plugins and
-only accept plugins authenticated using the same certificate used for
-establishing the QUIC connection.
+A QUIC Plugin MAY be authenticated using the certificate of the peer, itself
+certified by a central authority. Consequently, a QUIC implementation accepting
+plugins MAY restrict the exchange of QUIC Plugins and only accept plugins
+authenticated using the same certificate used for establishing the QUIC
+connection.
 
-A QUIC endpoint MAY forbid the injection of received QUIC Plugins, while still
-being able to send QUIC Plugins to its peer.
+## Distributing Trust
+
+This second approach is presented in the orginal {{PQUIC}} research paper, and
+suggests to go beyond to the restrictive approach of a centralized trust model
+that would oblige server to update manually their list of supported plugins, and
+prevent the client to inject a plugin that the server has not marked to support
+(either because the server is unaware of its existance, or because the list
+is not up to date).
+
+The suggested design, called Plugin Transparency, proposes a methodology to
+transparently distribute plugins created by independent developers, verified by
+freely selected plugin validators that endorse veryfying some publicly known
+safety or security property. Peers (client or server) can announce a set of
+conditions tu support a plugin as a first order logic formulae bound to plugin
+validators. In response, the other peer MUST send a proof that the public
+fulfill the requirement expressed by the logic formulae. If the requirements are
+met, then the peer MAY safely accept the plugin and MUST update its list of
+plugin supported.
+
 
 # Security Considerations
 
@@ -293,7 +319,6 @@ This document has no IANA actions.
 
 --- back
 
-# Acknowledgments
-{:numbered="false"}
+# Acknowledgments {:numbered="false"}
 
 TODO acknowledge.
