@@ -1,0 +1,504 @@
+
+
+
+
+QUIC Working Group                                        M. Piraux, Ed.
+Internet-Draft                                             Q. De Coninck
+Intended status: Experimental                                  F. Michel
+Expires: 24 August 2020                                        F. Rochet
+                                                          O. Bonaventure
+                                                               UCLouvain
+                                                        21 February 2020
+
+
+                              QUIC Plugins
+                      draft-piraux-quic-plugins-00
+
+Abstract
+
+   This document proposes a new mechanism for extending the QUIC
+   protocol dynamically.  QUIC Plugins allows modifying the behavior of
+   a QUIC peer on a per-connection basis.  These plugins run inside a
+   sandboxed environment monitoring their executions.  They can be
+   combined to add their functionalities to a given QUIC connection.
+
+   This document is a straw-man proposal.  It aims at sparking
+   discussions on the proposed approach.  TODO(mp): Encourage a place
+   (ml ?) to discuss the approach
+
+Note to Readers
+
+   Discussion of this document takes place on the QUIC Working Group
+   mailing list (quic@ietf.org), which is archived at
+   https://mailarchive.ietf.org/arch/browse/quic/
+   (https://mailarchive.ietf.org/arch/browse/quic/).
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/mpiraux/draft-piraux-quic-plugins
+   (https://github.com/mpiraux/draft-piraux-quic-plugins).
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+
+
+
+
+Piraux, et al.           Expires 24 August 2020                 [Page 1]
+
+Internet-Draft                QUIC Plugins                 February 2020
+
+
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 24 August 2020.
+
+Copyright Notice
+
+   Copyright (c) 2020 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Simplified BSD License text
+   as described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Simplified BSD License.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+   2.  Conventions and Definitions . . . . . . . . . . . . . . . . .   3
+   3.  What is a plugin ?  . . . . . . . . . . . . . . . . . . . . .   3
+   4.  Examples of use-cases . . . . . . . . . . . . . . . . . . . .   3
+     4.1.  Application-driven stream scheduling  . . . . . . . . . .   4
+     4.2.  Pluggable congestion controller . . . . . . . . . . . . .   4
+     4.3.  Tunable acknowledgments policy  . . . . . . . . . . . . .   5
+   5.  Injecting/accepting QUIC Plugins  . . . . . . . . . . . . . .   5
+   6.  Exchanging QUIC Plugins . . . . . . . . . . . . . . . . . . .   6
+   7.  Trusting QUIC Plugins . . . . . . . . . . . . . . . . . . . .   6
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .   6
+   9.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   6
+   10. References  . . . . . . . . . . . . . . . . . . . . . . . . .   6
+     10.1.  Normative References . . . . . . . . . . . . . . . . . .   6
+     10.2.  Informative References . . . . . . . . . . . . . . . . .   7
+   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .   8
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .   8
+
+1.  Introduction
+
+   TODO(mp) Introduction
+
+
+
+
+
+
+
+
+
+Piraux, et al.           Expires 24 August 2020                 [Page 2]
+
+Internet-Draft                QUIC Plugins                 February 2020
+
+
+2.  Conventions and Definitions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in BCP
+   14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+3.  What is a plugin ?
+
+   TODO(mp): Change the section title, I don't like it
+
+   A QUIC Plugin consists of platform-independent bytecode which modify
+   or extend the behavior of a QUIC implementation.  This document
+   consider the behavior of a QUIC implementation as a set of functions,
+   also named protocol operations.  Adding the functionality of a QUIC
+   Plugin, i.e. adding or replacing a set of protocol operations, to a
+   QUIC connection is refered to as injecting a QUIC Plugin.  Injecting
+   a plugin is limited to a given connection.
+
+   Its bytecode is run inside a sandboxed execution environment.  It
+   access to the state of a QUIC connection through a restricted API.
+
+   The scope of a QUIC Plugin is restricted by both the limitations of
+   this execution environment, e.g. in terms of instruction set and
+   quantity, and by the surface exposed by this API, e.g. the quantity
+   of state that can be read from or written to by a plugin.  The API
+   also defines a set of protocol operations to which QUIC Plugins can
+   be injected.  For instance, a QUIC implementation might restrict QUIC
+   Plugins injection to its acknowledgment generation policy, e.g. the
+   protocol operation deciding whether sending an ACK frame is needed.
+
+   A QUIC Plugin can be injected by several means.  The application can
+   inject plugins to tune its underlying QUIC connection.  QUIC peers
+   can exchange and inject plugins over a QUIC connection, as described
+   in Section 6.  Users can set a default configuration to inject
+   plugins on their devices.
+
+4.  Examples of use-cases
+
+   There exist several cases in which being able to modify the behavior
+   of a QUIC peer is beneficial.  [PQUIC] demonstrates how this approach
+   can be used to deploy existing QUIC extensions such as Multipath QUIC
+   [I-D.deconinck-multipath-quic] and [QUIC-FEC].  This first version of
+   the document focus on enabling the extension of simpler QUIC
+   mechanisms.  Three of them are documented in this section.
+   Contributions regarding new uses-cases are welcomed.
+
+
+
+
+Piraux, et al.           Expires 24 August 2020                 [Page 3]
+
+Internet-Draft                QUIC Plugins                 February 2020
+
+
+4.1.  Application-driven stream scheduling
+
+   QUIC streams allow the application to multiplex several bytestreams
+   over a single QUIC connection.  Yet, the QUIC specification does not
+   provide a mechanism for exchanging prioritization information nor for
+   indicating the relative priority of streams.  As described in
+   Section 2.3 of [I-D.ietf-quic-transport], A QUIC implementation
+   SHOULD provide ways in which an application can indicate the relative
+   priority of streams.  A QUIC implementation could allow QUIC Plugins
+   to extend or override its stream scheduler.
+
+   A proposal for stream prioritisation for HTTP/3 already exists
+   [I-D.kazuho-httpbis-priority].  Instead of defining a communication
+   interface between the application and the QUIC implementation for
+   indicating the priority and scheduling of QUIC streams, a QUIC Plugin
+   could directly implement the required behavior.  [LNBIP2020]
+   evaluates stream scheduling for HTTP/3 and claims that performances
+   are heavily impacted by the adopted stream scheduling.
+
+   For other applications over QUIC with a broad range of requirements,
+   a flexible approach for defining the stream scheduling policy is key
+   to best fit their needs.  QUIC Plugin offer a flexible way to embed
+   application knowledge inside the QUIC implementation.
+
+4.2.  Pluggable congestion controller
+
+   There exists many congestion control algorithms.  Each of them has
+   been designed for a given context, i.e. a range of applications and a
+   range of Internet paths.  For instance, Reno [TODO] has been designed
+   for optimizing the web use-case on common Internet paths.  Westwood
+   [TODO] is a modification of Reno to better accommodate Internet paths
+   with a high bandwidth-delay product, such as satellite links.
+
+   Efforts to restructure congestion controllers within a common
+   framework have been presented in past works such as [CCP].  Such a
+   framework eases the development and maintenance of those algorithms.
+   It also enables rapid prototyping and A/B testing.
+
+   [TCP-Options-BPF] proposes a new TCP Option, leveraging the TCP-BPF
+   framework, to negotiate the congestion controller to use.  The QUIC
+   specification does not specify a similar mechanism.  Negotiating the
+   congestion controller used allows one endpoint to tune the other,
+   provided that it implements the algorithm.  QUIC Plugins could allow
+   the application to directly plug the required congestion controller
+   and to exchange it with the other peer.  This flexibility allows the
+   application to choose the best congestion controller for its
+   requirements.
+
+
+
+
+Piraux, et al.           Expires 24 August 2020                 [Page 4]
+
+Internet-Draft                QUIC Plugins                 February 2020
+
+
+4.3.  Tunable acknowledgments policy
+
+   The large diversity of Internet paths also counts networks involving
+   a significant path asymmetry.  Those paths often impact the ability
+   of the receiver to provide feedback to the sender.  The performance
+   of transport protocols such as TCP has been studied in depth and
+   reported in [RFC3449].  A method for controlling the rate of receiver
+   feedback of TCP, i.e. the rate of ACKs, has been proposed in
+   [RFC5690].
+
+   Proposals for controlling the acknowledgment policy of QUIC already
+   exist.  [I-D.fairhurst-quic-ack-scaling] proposes a change to the
+   default policy for asymmetric paths.  [I-D.iyengar-quic-delayed-ack]
+   describes a QUIC extension enabling a QUIC endpoint to control the
+   acknowledgment policy of its peer.  For that purpose, they model the
+   acknowledgment policy depending on a few parameters and introduce a
+   new QUIC frame to signal new values for those parameters.
+
+   A QUIC Plugin could allow implementing a new acknowledgment with a
+   fine granularity.  For example, in the case of an application that
+   generates bursty trafic, such as a real-time video streaming
+   application, a QUIC Plugin allows to embed application knowledge,
+   i.e. the characteristics of such bursts, inside the acknowledgment
+   generation policy.  Exchanging and injecting this plugin allows
+   controlling the other peer behavior.
+
+5.  Injecting/accepting QUIC Plugins
+
+   Injecting a QUIC Plugin to a QUIC implementation requires several
+   modifications.  First, an execution environment is required to
+   execute the plugin, as it is not consisting of executable machine
+   code.  This environment executes the bytecode of QUIC Plugins.  This
+   bytecode is portable and has a limited instruction set, such as eBPF
+   or WebAssembly bytecode.  The plugin runs thus in an isolated
+   environment inside the QUIC implementation.
+
+   The QUIC implementation is responsible for interacting with the
+   plugin, i.e. running its bytecode and providing restricted access to
+   the QUIC connection state.  For example, a QUIC implementation that
+   accepts plugins deciding whether an acknowledgment has to be sent
+   should execute the plugin everytime this decision is considered and
+   provide access to relevant state for computing this decision.  A QUIC
+   implementation that accepts plugins implementing a congestion
+   controller may provide write access to some state, for example the
+   congestion window of a given path, so that the plugin can modify the
+   state of the QUIC connection.
+
+
+
+
+
+Piraux, et al.           Expires 24 August 2020                 [Page 5]
+
+Internet-Draft                QUIC Plugins                 February 2020
+
+
+6.  Exchanging QUIC Plugins
+
+   Injecting QUIC Plugins locally in the underlying QUIC implementation
+   allows the application to tune it to its needs.  But some use-cases
+   requires adapting the peer behavior.  In those cases, being able to
+   exchange plugins helps to fill that gap.
+
+   In order to negotiate the use of QUIC Plugins, new transport
+   parameters could be used to announce the plugins that should be
+   injected.  Each QUIC peer announces the plugins it supports and the
+   plugins that it would like to inject to the other peer.  A local
+   policy could restrict the type of plugins that can be exchanged and
+   injected.  Once the QUIC handshake completes and the QUIC Plugins
+   transport parameters have been exchanged, plugins exchange can take
+   place next to the data transfer, using a new dedidcated stream type
+   akin to the crypto stream.
+
+7.  Trusting QUIC Plugins
+
+   Each QUIC Plugin MUST be associated to some level of trust regarding
+   its origin.  For instance, a QUIC Plugin MAY be authenticated using a
+   certificate.  A QUIC implementation accepting plugins MAY restrict
+   the exchange of QUIC Plugins and only accept plugins authenticated
+   using the same certificate used for establishing the QUIC connection.
+
+   A QUIC endpoint MAY forbid the injection of received QUIC Plugins,
+   while still being able to send QUIC Plugins to its peer.
+
+8.  Security Considerations
+
+   TODO Security
+
+9.  IANA Considerations
+
+   This document has no IANA actions.
+
+10.  References
+
+10.1.  Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/info/rfc8174>.
+
+
+
+Piraux, et al.           Expires 24 August 2020                 [Page 6]
+
+Internet-Draft                QUIC Plugins                 February 2020
+
+
+10.2.  Informative References
+
+   [CCP]      Narayan, A., Cangialosi, F., Raghavan, D., Goyal, P.,
+              Narayana, S., Mittal, R., Alizadeh, M., and H.
+              Balakrishnan, "Restructuring Endpoint Congestion Control",
+              August 2018.
+
+   [I-D.deconinck-multipath-quic]
+              Coninck, Q. and O. Bonaventure, "Multipath Extension for
+              QUIC", Internet Draft, draft-deconinck-multipath-quic-00,
+              30 October 2017,
+              <http://www.ietf.org/internet-drafts/draft-deconinck-
+              multipath-quic-00.txt>.
+
+   [I-D.fairhurst-quic-ack-scaling]
+              Fairhurst, G., Custura, A., and T. Jones, "Changing the
+              Default QUIC ACK Policy", Internet Draft, draft-fairhurst-
+              quic-ack-scaling-00, 29 January 2020,
+              <http://www.ietf.org/internet-drafts/draft-fairhurst-quic-
+              ack-scaling-00.txt>.
+
+   [I-D.ietf-quic-transport]
+              Iyengar, J. and M. Thomson, "QUIC: A UDP-Based Multiplexed
+              and Secure Transport", Internet Draft, draft-ietf-quic-
+              transport-25, 21 January 2020,
+              <http://www.ietf.org/internet-drafts/draft-ietf-quic-
+              transport-25.txt>.
+
+   [I-D.iyengar-quic-delayed-ack]
+              Iyengar, J. and I. Swett, "Sender Control of
+              Acknowledgement Delays in QUIC", Internet Draft, draft-
+              iyengar-quic-delayed-ack-00, 23 January 2020,
+              <http://www.ietf.org/internet-drafts/draft-iyengar-quic-
+              delayed-ack-00.txt>.
+
+   [I-D.kazuho-httpbis-priority]
+              Oku, K. and L. Pardue, "Extensible Prioritization Scheme
+              for HTTP", Internet Draft, draft-kazuho-httpbis-priority-
+              04, 20 November 2019,
+              <http://www.ietf.org/internet-drafts/draft-kazuho-httpbis-
+              priority-04.txt>.
+
+   [LNBIP2020]
+              Marx, R., De Decker, T., Quax, P., and W. Lamotte,
+              "Resource Multiplexing and Prioritization in HTTP/2 over
+              TCP versus HTTP/3 over QUIC", February 2020.
+
+
+
+
+
+Piraux, et al.           Expires 24 August 2020                 [Page 7]
+
+Internet-Draft                QUIC Plugins                 February 2020
+
+
+   [PQUIC]    De Coninck, Q., Michel, F., Piraux, M., Given-Wilson, T.,
+              Legay, A., Pereira, O., and O. Bonaventure, "Pluginizing
+              QUIC", Proceedings of the ACM Special Interest Group on
+              Data Communication , August 2019.
+
+   [QUIC-FEC] Michel, F., De Coninck, Q., and O. Bonaventure, "QUIC-FEC:
+              Bringing the benefits of Forward Erasure Correction to
+              QUIC", May 2019.
+
+   [RFC3449]  Balakrishnan, H., Padmanabhan, V., Fairhurst, G., and M.
+              Sooriyabandara, "TCP Performance Implications of Network
+              Path Asymmetry", BCP 69, RFC 3449, DOI 10.17487/RFC3449,
+              December 2002, <https://www.rfc-editor.org/info/rfc3449>.
+
+   [RFC5690]  Floyd, S., Arcia, A., Ros, D., and J. Iyengar, "Adding
+              Acknowledgement Congestion Control to TCP", RFC 5690,
+              DOI 10.17487/RFC5690, February 2010,
+              <https://www.rfc-editor.org/info/rfc5690>.
+
+   [TCP-Options-BPF]
+              Tran, VH. and O. Bonaventure, "Beyond socket options:
+              making the Linux TCP stack truly extensible", May 2019.
+
+   [TODO]     TODO, ., "TODO", February 2020.
+
+Acknowledgments
+
+   TODO acknowledge.
+
+Authors' Addresses
+
+   Maxime Piraux (editor)
+   UCLouvain
+
+   Email: maxime.piraux@uclouvain.be
+
+
+   Quentin De Coninck
+   UCLouvain
+
+   Email: quentin.deconinck@uclouvain.be
+
+
+   Francois Michel
+   UCLouvain
+
+   Email: francois.michel@uclouvain.be
+
+
+
+
+Piraux, et al.           Expires 24 August 2020                 [Page 8]
+
+Internet-Draft                QUIC Plugins                 February 2020
+
+
+   Florentin Rochet
+   UCLouvain
+
+   Email: florentin.rochet@uclouvain.be
+
+
+   Olivier Bonaventure
+   UCLouvain
+
+   Email: olivier.bonaventure@uclouvain.be
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Piraux, et al.           Expires 24 August 2020                 [Page 9]
