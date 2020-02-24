@@ -331,20 +331,41 @@ weaken the system. Our Plugin Transparency approach bears similarities
 to Certificate Transparency. First, our motivations are drawn from the same
 conclusions regarding the danger of central trust models. Second, like
 {{CT}}, we build over distributing trust assumptions to secure the
-system. However, our design offer stronger properties and get rid of the
-requirement to have independant monitoring entities which have the
-resource to continously monitor the {{CT}} log in behalf of certificate
-owners. Indeed our design offers the independant developers to check for
-spurious plugins in O(log(N)) with N the size of the log (instead of
-O(N) in {{CT}}'s design), offers Secure human-readable names for plugins
-to the system that unambiguously authentify them and Non-equivocation
-from rogue plugin validators. Our design allows to be more resilient to
-failure, by offering to optionnaly trust various validators within the
-logic formula in case of failure to provide service. That is, for
-example, a PQUIC peer may ask to provide a proof bound to either one of
-several plugin validators (or any combinaison of them). The detail of
-the design, including performance performance considerations and
-security proofs are available in {{PQUIC}}.
+system. However, our design offers stronger properties and gets rid of the
+requirement to have independant monitoring entities which hold the
+resource endowment to continously monitor the {{CT}} log in behalf of
+certificate owners. Indeed our design offers the independant developers
+to check for spurious plugins in O(log(N)) with N the size of the log
+(instead of O(N) in {{CT}}'s design), offers Secure human-readable names
+for plugins to the system that unambiguously authentify them and
+Non-equivocation from rogue plugin validators. Our design allows to be
+more resilient to failure, by offering to optionnaly trust various
+validators within the logic formula in case of failure to provide
+service. That is, for example, a PQUIC peer may ask to provide a proof
+bound to either one of several plugin validators (or any combinaison of
+them). The detail of the design, including performance performance
+considerations and security proofs are available in {{PQUIC}}.
+
+
+## Privacy
+
+In the central authority paradigm, there is no Privacy. That is, the
+PQUIC server can set arbitrary plugins to the PQUIC stack of any user as
+long as they provide a valid signature to them.
+
+In the Plugin Transparency model, Privacy MAY be achieved under careful
+treatment. One solution is to remove the notion of supported plugins
+within the transport parameters, remove the cache system and use the
+default policy to ask for a plugin endorsement by the validators.
+Within the default policy, at least one plugin validator MUST be tasked to verify
+that the plugin is not leaking distinguishable information to the PQUIC
+server, such as an obvious ID or a more subtle fingerprinting extracting
+design built-in to the plugin. Moreover, the validator MAY require
+open-source availability and public knowledge of the pseudo-identity of its
+developer. To avoid leaking information to the nework, the injection of
+a set of plugins (while bing encrypted) SHOULD be indistinguishable from
+any other set of plugins.
+
 
 ## System Security
 
