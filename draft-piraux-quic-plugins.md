@@ -147,43 +147,44 @@ This model has been used to represent a wide range of Internet
 protocols. However, there are some limits to the flexibility of
 these protocols as illustrated by recent discussions.
 
-A first example in the transmission of acknowledgments in reliable
-transport protocols. There is a tradeoff between the feedback provided
-by the acknowledgements and the ressources (bandwidth that CPU) that
+A first example is the transmission of acknowledgments in reliable
+transport protocols. There is a trade-off between the feedback provided
+by the acknowledgments and the resources (bandwidth and CPU)
 required to generate and process them. Various heuristics have
 been proposed in TCP to generate these ACKs
 {{RFC1122}},{{RFC2581}},{{RFC3449}},{{RFC5690}}. These heuristics are deployed
 independently on receivers, but for some of them the senders need to
 adapt by at least taking into account the fact that some
-acknowledgements were delayed while measuring the round-trip-time.
+acknowledgments were delayed while measuring the round-trip-time.
 A similar discussion has started for QUIC. Given the flexibility of
-QUIC, some researchers have proposed to define an acknowledgement
+QUIC, some researchers have proposed to define an acknowledgment
 strategy as a set of parameters that are exchanged in a new QUIC frame
 over each connection
 {{I-D.fairhurst-quic-ack-scaling}},{{I-D.iyengar-quic-delayed-ack}}. This brings
-some more flexibility than in TCP where the limited size of the header
-made it impossible to exchange such information, but will also affect
+more flexibility than in TCP where the limited size of the header
+made it impossible to exchange such information, but it also affects
 the round-trip-time estimation {{I-D.ietf-quic-transport}}.
 
 A second example in the application layer
 is the support for stream priorities in HTTP/2 {{RFC7540}}. Since
-HTTP/2 provides parallel streams, some application developpers have
-expressed their need to be able to prioritise some streams over
+HTTP/2 provides parallel streams, some application developers have
+expressed their need to be able to prioritize some streams over
 others. The HTTP/2 protocol defines such priorities, but they are
 not widely used and some have proposed to deprecate them
-{{I-D.peon-httpbis-h2-priority-one-less}}. Despite of this, a
+{{I-D.peon-httpbis-h2-priority-one-less}}. In spite of this, a
 proposal for stream
-prioritisation for HTTP/3 already exists {{I-D.kazuho-httpbis-priority}}. {{LNBIP2020}} evaluates stream scheduling for HTTP/3 and
+prioritization for HTTP/3 already exists {{I-D.kazuho-httpbis-priority}}.
+{{LNBIP2020}} evaluates stream scheduling for HTTP/3 and
 claims that performances are heavily impacted by the adopted stream
 scheduling.
 
 
 These examples illustrate the difficulty of precisely expressing
-complex behaviours in a few parameters that are exchanged inside
+complex behaviors in a few parameters that are exchanged inside
 packets. In this document, we leverage the recent results in
-extending operating system kernels {{eBPF}} or webbrowsers {{WA}}
+extending operating system kernels {{TODO}} or web-browsers {{TODO}}
 with virtual machines that execute bytecodes to propose a new
-approach to define complex behaviours inside protocols. We first
+approach to define complex behaviors inside protocols. We first
 describe the general architecture of the proposed approach in
 {{archi}}. We then provide a few examples showing how such an
 approach could be applied to the next version of the QUIC protocol in
@@ -204,13 +205,13 @@ when, and only when, they appear in all capitals, as shown here.
 TODO(mp): Change the section title, I don't like it
 
 A QUIC Plugin consists of platform-independent bytecode which modify or extend the
-behavior of a QUIC implementation. This document consider the behavior of a QUIC
-implementation as a set of functions, also named protocol operations.
+behavior of a QUIC implementation. This document considers the behavior of a
+QUIC implementation as a set of functions, also named protocol operations.
 Adding the functionality of a QUIC Plugin, i.e. adding or replacing a set of
-protocol operations, to a QUIC connection is refered to as injecting a QUIC
+protocol operations, to a QUIC connection is referred to as injecting a QUIC
 Plugin. Injecting a plugin is limited to a given connection.
 
-Its bytecode is run inside a sandboxed execution environment. It access to the
+Its bytecode is run inside a sandboxed execution environment. It accesses to the
 state of a QUIC connection through a restricted API.
 
 The scope of a QUIC Plugin is restricted by both the limitations of this
@@ -293,8 +294,8 @@ and introduce a new QUIC frame to signal new values for those parameters.
 
 A QUIC Plugin could allow implementing a new acknowledgment with a fine
 granularity. For example, in the case of an application that generates bursty
-trafic, such as a real-time video streaming application, a QUIC Plugin allows
-to embed application knowledge, i.e. the characteristics of such bursts, inside
+traffic, such as a real-time video streaming application, a QUIC Plugin allows
+embedding application knowledge, i.e. the characteristics of such bursts, inside
 the acknowledgment generation policy. Exchanging and injecting this plugin
 allows controlling the other peer behavior.
 
@@ -302,7 +303,7 @@ allows controlling the other peer behavior.
 
 Injecting a QUIC Plugin to a QUIC implementation requires several
 modifications. First, an execution environment is required to execute the
-plugin, as it is not consisting of executable machine code. This environment
+plugin, as it does not consist of executable machine code. This environment
 executes the bytecode of QUIC Plugins. This bytecode is portable and has a
 limited instruction set, such as eBPF or WebAssembly bytecode. The plugin runs
 thus in an isolated environment inside the QUIC implementation.
@@ -310,7 +311,7 @@ thus in an isolated environment inside the QUIC implementation.
 The QUIC implementation is responsible for interacting with the plugin, i.e.
 running its bytecode and providing restricted access to the QUIC connection
 state. For example, a QUIC implementation that accepts plugins deciding whether
-an acknowledgment has to be sent should execute the plugin everytime this
+an acknowledgment has to be sent should execute the plugin every time this
 decision is considered and provide access to relevant state for computing this
 decision. A QUIC implementation that accepts plugins implementing a congestion
 controller may provide write access to some state, for example the congestion
@@ -330,7 +331,7 @@ the plugins it supports and the plugins that it would like to inject to the
 other peer. A local policy could restrict the type of plugins that can be
 exchanged and injected. Once the QUIC handshake completes and the QUIC Plugins
 transport parameters have been exchanged, plugins exchange can take place next
-to the data transfer, using a new dedidcated stream type akin to the crypto
+to the data transfer, using a new dedicated stream type akin to the crypto
 stream.
 
 # Trusting QUIC Plugins
