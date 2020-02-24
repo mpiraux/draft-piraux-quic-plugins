@@ -274,38 +274,38 @@ stream.
 
 # QUIC Plugins Authenticity
 
-Several options are possible under different threat models and offering
+Several possibilities exist under different threat models and offer
 different security properties. Two of them are described in the following
 sections.
 
 ## Central Authorities
 
-Each QUIC Plugin MUST be associated to some level of trust regarding its origin.
-A QUIC Plugin MAY be authenticated using the certificate of the peer, itself
-certified by a central authority. Consequently, a QUIC implementation accepting
-plugins MAY restrict the exchange of QUIC Plugins and only accept plugins
-authenticated using the same certificate used for establishing the QUIC
-connection.
+This first approach leverages the central authorities commonly
+used to secure HTTPS. In this approach, each QUIC Plugin MUST be associated to
+some level of trust regarding its origin. A QUIC Plugin MAY be authenticated
+using a certificate, itself certified by a central authority.
+Consequently, a QUIC implementation supporting QUIC plugins MAY restrict their
+exchange and only accept plugins authenticated using the same certificate
+used for establishing the QUIC connection.
 
-## Distributing Trust
+## Plugin Transparency
 
-This second approach is presented in the orginal {{PQUIC}} research paper, and
-suggests to go beyond to the restrictive approach of a centralized trust model
-that would oblige server to update manually their list of supported plugins, and
-prevent the client to inject a plugin that the server has not marked to support
-(either because the server is unaware of its existance, or because the list
-is not up to date).
+This second approach is presented in the {{PQUIC}} research paper, and
+suggests going beyond to the restrictive approach of a centralized trust model.
+Such a model obliges the server to update manually their list of supported
+plugins. It also prevents the client from injecting a plugin that the server has
+not marked to support, e.g. because the server is unaware of its existence or
+its list has not been updated.
 
 The suggested design, called Plugin Transparency, proposes a methodology to
-transparently distribute plugins created by independent developers, verified by
-freely selected plugin validators that endorse veryfying some publicly known
-safety or security property. Peers (client or server) can announce a set of
-conditions tu support a plugin as a first order logic formulae bound to plugin
-validators. In response, the other peer MUST send a proof that the public
-fulfill the requirement expressed by the logic formulae. If the requirements are
-met, then the peer MAY safely accept the plugin and MUST update its list of
-plugin supported.
-
+transparently distribute plugins created by independent developers and verified
+by freely selected plugin validators. Those validators endorse verifying some
+publicly known safety or security property. A QUIC endpoint can
+announce a set of conditions to accept a plugin as a first order logic formula
+bound to plugin validators. Whenever the other peer is willing to inject a
+plugin, it MUST send a proof that fulfill the requirements expressed by the
+logic formula. If the requirements are met, then the endpoint MAY safely accept
+the plugin and MUST update its list of plugin supported.
 
 # Security Considerations
 
