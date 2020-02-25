@@ -306,7 +306,7 @@ modifications. First, an execution environment is required to execute the
 plugin, as it does not consist of executable machine code. This environment
 recompiles the bytecode of QUIC Plugins and then execute the native
 instructions. The bytecode is a portable reduced instruction set, such
-as eBPF or WebAssembly bytecode. The plugin runs thus inside an isolated 
+as eBPF or WebAssembly bytecode. The plugin runs thus inside an isolated
 environment inside the QUIC implementation.
 
 The QUIC implementation is responsible for interacting with the plugin, i.e.
@@ -456,6 +456,7 @@ This document has no IANA actions.
 
 --- back
 
-# Acknowledgments {:numbered="false"}
+# Acknowledgments
+{:numbered="false"}
 
 TODO acknowledge.
