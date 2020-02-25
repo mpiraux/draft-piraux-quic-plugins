@@ -85,6 +85,7 @@ informative:
   I-D.ietf-quic-transport:
   RFC3449:
   RFC5690:
+  RFC6962:
   I-D.fairhurst-quic-ack-scaling:
   I-D.iyengar-quic-delayed-ack:
   I-D.deconinck-multipath-quic:
@@ -291,23 +292,23 @@ used for establishing the QUIC connection.
 ## Plugin Transparency
 
 This second approach is presented in the {{PQUIC}} research paper, and
-suggests going beyond to the restrictive approach of a centralized trust
-model.  The centralized trust model obliges the server to update
+suggests going beyond the restrictive approach of a centralized trust
+model. The centralized trust model obliges the server to update
 manually their list of supported plugins. It also prevents the client
-from injecting a plugin that the server has not marked to support, e.g.
-because the server is unaware of its existence or its list has not been
+from injecting a plugin that the server has not marked as supported, e.g.
+because the server is unaware of its existence, or because its list has not been
 updated.
 
 The suggested design, called Plugin Transparency, proposes a methodology
 to transparently distribute plugins created by independent developers
 and verified by freely selected plugin validators. Those validators
-endorse verifying some publicly known safety or security property. A
+endorse verifying some publicly known safety or security properties. A
 QUIC endpoint can announce a set of conditions to accept a plugin as a
 first order logic formula bound to plugin validators. Whenever the other
 peer is willing to inject a plugin, it MUST send a (unforgeable) proof
-that fulfills the requirements expressed by the logic formula. If the
+fulfilling the requirements expressed by this logic formula. If the
 requirements are met, then the endpoint MAY safely accept the plugin and
-MUST update its list of plugin supported. Compared to the Central
+MUST update its list of plugin supported. Compared to the central
 authority approach, supported plugins are updated as part of the
 protocol design or as a consequence of any change to the default logic
 formula bound to plugin acceptance.
@@ -317,62 +318,59 @@ formula bound to plugin acceptance.
 ## Authenticity
 
 The central authority model is ubiquitous to secure modern application
-layer protocols such as HTTP. Yet, many flaws exist within the
-centralized trust model that, at several occasions, conducted secured
-HTTP connections to suffer from the threats which they were expected to
+layer protocols such as HTTPS. Yet, many flaws exist within the
+centralized trust model that, at several occasions, conducted
+HTTPS connections to suffer from the threats which they were expected to
 defend, or to sometimes denial access to the content due to poor
 resilience of the system to failure (e.g., forgetting certificate
 renewal)
 
-Google's Certificte Transparency project {{CT}} is an attempt to address
+Certificate Transparency {{RFC6962}} is an attempt to address
 the structural issues hidden within the central trust assumption and
-prevent issue by mistake, rogue certificates and rogue authorities to
-weaken the system. Our Plugin Transparency approach bears similarities
-to Certificate Transparency. First, our motivations are drawn from the same
-conclusions regarding the danger of central trust models. Second, like
-{{CT}}, we build over distributing trust assumptions to secure the
-system. However, our design offers stronger properties and gets rid of the
-requirement to have independant monitoring entities which hold the
-resource endowment to continously monitor the {{CT}} log in behalf of
-certificate owners. Indeed our design offers the independant developers
-to check for spurious plugins in O(log(N)) with N the size of the log
-(instead of O(N) in {{CT}}'s design), offers Secure human-readable names
-for plugins to the system that unambiguously authentify them and
-Non-equivocation from rogue plugin validators. Our design allows to be
-more resilient to failure, by offering to optionnaly trust various
-validators within the logic formula in case of failure to provide
-service. That is, for example, a PQUIC peer may ask to provide a proof
-bound to either one of several plugin validators (or any combinaison of
-them). The detail of the design, including performance performance
-considerations and security proofs are available in {{PQUIC}}.
-
+prevent mistakes, rogue certificates and rogue authorities from
+weakening the system. Plugin Transparency bears similarities
+to Certificate Transparency (CT). First, its motivations are drawn from the same
+conclusions regarding the danger of central trust models. Second, similar to
+CT, it is based on distributing trust assumptions to secure the
+system. However, Plugin Transparency offers stronger properties and eliminates
+the independent monitoring entities which hold the resource endowment to
+continuously monitor the CT log in behalf of certificate owners. Indeed, our
+design offers the independent developers checking for spurious plugins in
+O(log(N)) with N the size of the log (instead of O(N) in CT's design).
+Our design also offers secure human-readable plugins names that unambiguously
+authenticate them and non-equivocation from rogue plugin validators. Our design
+is more resilient to failure by offering several validators that can be trusted
+within the logic formula. For example, a PQUIC peer may request a proof bound
+to any combination of plugin validators. The detail of Plugin Transparency,
+including performance considerations and security proofs are available in
+{{PQUIC}}.
 
 ## Privacy
 
-In the central authority paradigm, there is no Privacy. That is, the
-PQUIC server can set arbitrary plugins to the PQUIC stack of any user as
+In the central authority paradigm, there is no privacy. That is, the
+PQUIC server can set arbitrary plugins to the PQUIC client of any user as
 long as they provide a valid signature to them.
 
-In the Plugin Transparency model, Privacy MAY be achieved under careful
-treatment. One solution is to remove the notion of supported plugins
-within the transport parameters, remove the cache system and use the
+In the Plugin Transparency model, privacy may be achieved under careful
+treatment. One solution is to remove the list of supported plugins
+from the transport parameters, to remove the cache system and use the
 default policy to ask for a plugin endorsement by the validators.
 Within the default policy, at least one plugin validator MUST be tasked to verify
 that the plugin is not leaking distinguishable information to the PQUIC
-server, such as an obvious ID or a more subtle fingerprinting extracting
-design built-in to the plugin. Moreover, the validator MAY require
-open-source availability and public knowledge of the pseudo-identity of its
-developer (through the central plugin repository). To avoid leaking
-information to the nework, the injection of a set of plugins (while being
-encrypted) SHOULD be indistinguishable from any other set of plugins.
+server, such as an obvious ID or a more subtle fingerprinting mechanism built-in
+to the plugin. Moreover, the validator MAY require
+source code availability and public knowledge of the pseudo-identity of its
+developer. To avoid leaking information to the network, the injection of a set of
+plugins (while being encrypted) SHOULD be indistinguishable from any other set of
+plugins.
 
-One other solution to have Privacy while supporting the cache system and
+One other solution to have privacy while supporting the cache system and
 0-RTT injection of plugins is to advertise a set of plugins common to
 most PQUIC users. One method to achieve it would be to bind PQUIC users
 to a special plugin validator which counts at each epoch the number of
 PQUIC user reporting to have the plugin in its cache. When a sufficient
 number of users have it, the plugin validator adds this plugin to its
-Merkle Tree, which would allow PQUIC stacks to inject it to other peers.
+Merkle Tree, which would allow PQUIC endpoints to inject it to their peers.
 Similar to the previous solution, injecting a set of plugins SHOULD be
 indistinguishable from any other set of plugins to an on-path attacker.
 
@@ -381,9 +379,9 @@ indistinguishable from any other set of plugins to an on-path attacker.
 We expect the plugin to run within a sandboxed environment with access
 control and resource management defined by the host application running
 the plugin (the PQUIC implementation in our case), and traps mechanism.
-That is, plugins SHOULD be given whitelist permission type to system
+That is, plugins SHOULD be given whitelist access to system
 resources such as a file descriptor or a directory. The PQUIC
-implementation MAY define access policies to all protocol operations. In
+implementation MAY define access policies for all protocol operations. In
 opposition to the mobile ecosystem, protocol operations SHOULD NOT ask
 for permissions but are given permission ahead of their existence as
 part of all the protocol operations defined within a long-lived PQUIC
