@@ -362,10 +362,19 @@ that the plugin is not leaking distinguishable information to the PQUIC
 server, such as an obvious ID or a more subtle fingerprinting extracting
 design built-in to the plugin. Moreover, the validator MAY require
 open-source availability and public knowledge of the pseudo-identity of its
-developer. To avoid leaking information to the nework, the injection of
-a set of plugins (while bing encrypted) SHOULD be indistinguishable from
-any other set of plugins.
+developer (through the central plugin repository). To avoid leaking
+information to the nework, the injection of a set of plugins (while being
+encrypted) SHOULD be indistinguishable from any other set of plugins.
 
+One other solution to have Privacy while supporting the cache system and
+0-RTT injection of plugins is to advertise a set of plugins common to
+most PQUIC users. One method to achieve it would be to bind PQUIC users
+to a special plugin validator which counts at each epoch the number of
+PQUIC user reporting to have the plugin in its cache. When a sufficient
+number of users have it, the plugin validator adds this plugin to its
+Merkle Tree, which would allow PQUIC stacks to inject it to other peers.
+Similar to the previous solution, injecting a set of plugins SHOULD be
+indistinguishable from any other set of plugins to an on-path attacker.
 
 ## System Security
 
@@ -376,8 +385,9 @@ That is, plugins SHOULD be given whitelist permission type to system
 resources such as a file descriptor or a directory. The PQUIC
 implementation MAY define access policies to all protocol operations. In
 opposition to the mobile ecosystem, protocol operations SHOULD NOT ask
-for permissions but are given permission as part of a long-lived 
-PQUIC version.
+for permissions but are given permission ahead of their existence as
+part of all the protocol operations defined within a long-lived PQUIC
+version.
 
 # IANA Considerations
 
