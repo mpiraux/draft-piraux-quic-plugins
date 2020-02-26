@@ -44,7 +44,6 @@ author:
     email: olivier.bonaventure@uclouvain.be
 
 normative:
-  RFC2119:
 
 informative:
   PQUIC:
@@ -129,7 +128,7 @@ informative:
     author:
       - ins: TODO
     title: TODO
-    date: TODO  
+    date: TODO
   ICNP:
     author:
       - ins: TODO
@@ -164,9 +163,9 @@ exchanges TCP segments with remote hosts through the underlying IP
 protocol. Protocol designers usually define transport
 and application protocols in two parts:
 
- - a series of messages that are encoded using a specific format
+ - a series of messages that are encoded using a specific format.
  - a Finite State Machine that defines how hosts react to commands
-   from the layer above or the reception of a specific messages
+   from the layer above or to the reception of a specific messages.
 
 This model has been used to represent a wide range of Internet
 protocols. However, there are some limits to the flexibility of
@@ -224,10 +223,10 @@ upper layer. This is illustrated in {{fig-api}}.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Layer N+1
-       --- +-------- API --------------+
-Management |                           | 
-Protocol   |                           | 
-<--------->|  Protocol implementation  | 
+       --- +----------- API -----------+
+Management |                           |
+Protocol   |                           |
+<--------->|  Protocol implementation  |
            |                           |
            +---------------------------+
                  ||         /\
@@ -242,19 +241,19 @@ On benefit of this approach is that if two implementations expose the
 same API, it possible to replace one by the other without changing anything
 in the upper layers. In pratice, the API with the upper layer is not
 the only API that is exposed by a protocol implementation. For management
-and configuration purposes, many protocol implementations also expose 
+and configuration purposes, many protocol implementations also expose
 a set of configuration variables that can be accessed and for some of
 them be modified by network management protocols such as SNMP or IPFIX.
 
 These management approaches expose abstract configuration parameters and
-statistics about the key operations performed by a protocol implementation. 
+statistics about the key operations performed by a protocol implementation.
 They have been useful in configuring and operating a
 wide range of protocol implementations. As different implementations expose
 the same abstraction, it becomes possible for operators to configure
-and manage different implementations by using the same tool in a unified 
+and manage different implementations by using the same tool in a unified
 manner.
 
-Experience with succesful Internet protocols shows that once a protocol
+Experience with successful Internet protocols shows that once a protocol
 gets (widely) deployed, it attracts new use cases and proposals to
 extend and improve it. Most of the key Internet protocols, including IP, TCP,
 HTTP, DNS, BGP, OSPF, IS-IS, ... have been improved over the years. Today,
@@ -263,9 +262,9 @@ consult dozens of RFCs to find the complete specification of the protocol.
 
 Despite the importance of extensions to those key Internet protocols, we still
 do not design them under the assumption that they will evolve over decades and
-that their implementations should be mode agile. In this document, we propose
+that their implementations should be made agile. In this document, we propose
 a new organisation for protocol implementations. Instead of trying to
-pack as amny features as possible inside a protocol implementation that
+pack as many features as possible inside a protocol implementation that
 is considered as a blackbox, we consider a protocol implementation as
 an open system which can be safely extended to support new features in
 a safe and agile manner. Our vision is that such an implementation
@@ -274,63 +273,85 @@ Plugins in this document. This is illustrated in {{fig-plugins}}.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Layer N+1
-       --- +-------- API -----------+
-Management |     ()      ()     ()<------ Plugin_A
-Protocol   |                        | 
-<--------->|Protocol implementation | 
-           |      ()      ()<--------- Plugin_B
-           +------------------------+
+       --- +----------- API -----------+
+Management |  ( )       ( )       (x)<------ Plugin_A
+Protocol   |                           |
+<--------->|  Protocol implementation  |
+           |       ( )       (x)<--------- Plugin_B
+           +---------------------------+
                  ||         /\
                  \/         ||
 -----------------------------------
-Layer N-1
+
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 {: #fig-plugins title="A pluginized protocol implementation exposes an internal API that enables plugins to dynamically extend its operation"}
 
-There are different ways of implementing the idea of dynamically 
+There are different ways of implementing the idea of dynamically
 extending protocols by using plugins. We list here some requirements
 that any solution should support:
 
-REQ1. Different implementations should expose the same plugin API as different implementations expose the same SNMP MIB.
+REQ1:
+: Different implementations should expose the same plugin API, e.g. as different
+implementations expose the same SNMP MIB.
 
-REQ2. It should be possible to dynamically attach a plugin to one instance of an implementation (e.g. for a protocol that supports connections, it should be possible to associate different plugins to different connections).
+REQ2:
+: It should be possible to dynamically attach a plugin to one instance of an
+implementation. For instance, for a protocol that supports connections, it
+should be possible to associate different plugins to different connections.
 
-REQ3. It should be possible to execute the same plugin on different and interoperable implementations of the same protocol.
+REQ3:
+: It should be possible to execute the same plugin on different and
+interoperable implementations of the same protocol.
 
-REQ4. It should be possible for a protocol implementation to restrict the operations that a given plugin can execute.
+REQ4:
+: It should be possible for a protocol implementation to restrict the operations
+that a given plugin can execute.
 
-
-One possible way to realise this new archictecture for protocol 
-implementations is to include a virtual machine inside each protocol 
-implementation and
-expose a small plugin API that is accessible through the virtual machine. 
+One possible way to realise this new architecture is to include a virtual
+machine inside each protocol implementation and
+expose a small plugin API accessible through the virtual machine.
 Several efficient virtual machines have been proposed and used in related
-environments {{eBPF}} {{WebAssembly}}. They provide a sandox that controls the
-operations that the plugin can execute and the memory that it can access. 
-Since the same virtual machine can be installed on different platforms, it 
+environments {{eBPF}} {{WebAssembly}}. They provide a sandbox that controls the
+operations that the plugin can execute and the memory that it can access.
+Since the same virtual machine can be installed on different platforms, it
 becomes possible to execute the same plugin on different implementations of
-a given protocol that expose the same plugins API. 
+a given protocol that expose the same plugins API.
 
-The idea of extending protocols through plugins can be applied to 
-different Internet protocols. In this document, we focus adding plugins 
-to QUIC since QUIC is a recent and felxible protocol that includes
+The idea of extending protocols through plugins can be applied to
+different Internet protocols. In this document, we focus adding plugins
+to QUIC since it is a recent and flexible protocol that includes
 useful security features. A similar approach has been applied to OSPF
-and BGP {{ICNP}} and partially to TCP {{TCP-Options-BPF}}. 
+and BGP {{ICNP}} and partially to TCP {{TCP-Options-BPF}}.
 
+# Pluginizing QUIC {#pquic}
 
+QUIC is a recently proposed transport protocol {{I-D.ietf-quic-transport}} that
+combines the service offered by TCP and TLS. QUIC encrypts all the application
+data and most of the packet headers, and thus prevents most of the interferences
+from middleboxes. QUIC encode control and application data using a flexible
+framing mechanism. In this section, we describe how we combine the approach
+proposed in {{archi}} to those features to propose Pluginized QUIC.
 
-# Pluginzing QUIC {#pquic}
+We break down a QUIC implementation execution flow into a generic subroutines.
+These are specified functions called protocol operations. These protocol
+operations implement a given part of the QUIC protocol, for example the
+acknowledgment generation or the computation of the round-trip-time. Some are
+generic and depend on a parameter, for instance parsing a QUIC frame is a
+generic operation that depends on the type of QUIC frame. This version of the
+document does not elaborate exhaustively on the protocol operations that compose
+a Pluginized QUIC implementation. The next versions of this document will
+work on defining a set of protocol operations.
 
 # What is a QUIC plugin ?
 TODO(mp): Change the section title, I don't like it
 
-A QUIC Plugin consists of platform-independent bytecode which modify or extend the
-behavior of a QUIC implementation. This document considers the behavior of a
-QUIC implementation as a set of functions, also named protocol operations.
-Adding the functionality of a QUIC Plugin, i.e. adding or replacing a set of
-protocol operations, to a QUIC connection is referred to as injecting a QUIC
-Plugin. Injecting a plugin is limited to a given connection.
+A QUIC Plugin consists of platform-independent bytecode which modify or extend
+the behavior of a QUIC implementation. Adding the functionality of a QUIC Plugin
+consists in adding or replacing a set of protocol operations implemented by this
+bytecode. This action of adding a QUIC plugin to a QUIC connection is referred
+to as injecting a QUIC Plugin. Injecting a plugin is limited to a given
+QUIC connection.
 
 Its bytecode is run inside a sandboxed execution environment. It accesses to the
 state of a QUIC connection through a restricted API.
