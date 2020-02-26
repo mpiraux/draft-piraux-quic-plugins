@@ -52,6 +52,7 @@ informative:
       - ins: Q. De Coninck
       - ins: F. Michel
       - ins: M. Piraux
+      - ins: F. Rochet
       - ins: T. Given-Wilson
       - ins: A. Legay
       - ins: O. Pereira
@@ -82,12 +83,11 @@ informative:
     seriesinfo: Proc. SIGCOMM 2018
     date: August 2018
   I-D.ietf-quic-transport:
-  RFC3449:
-  RFC5690:
   RFC1122:
   RFC2581:
   RFC3449:
   RFC5690:
+  RFC6962:
   RFC7540:
   I-D.fairhurst-quic-ack-scaling:
   I-D.iyengar-quic-delayed-ack:
@@ -425,9 +425,10 @@ allows controlling the other peer behavior.
 Injecting a QUIC Plugin to a QUIC implementation requires several
 modifications. First, an execution environment is required to execute the
 plugin, as it does not consist of executable machine code. This environment
-executes the bytecode of QUIC Plugins. This bytecode is portable and has a
-limited instruction set, such as eBPF or WebAssembly bytecode. The plugin runs
-thus in an isolated environment inside the QUIC implementation.
+recompiles the bytecode of QUIC Plugins and then execute the native
+instructions. The bytecode is a portable reduced instruction set, such
+as eBPF or WebAssembly bytecode. The plugin runs thus inside an isolated
+environment inside the QUIC implementation.
 
 The QUIC implementation is responsible for interacting with the plugin, i.e.
 running its bytecode and providing restricted access to the QUIC connection
@@ -455,21 +456,114 @@ transport parameters have been exchanged, plugins exchange can take place next
 to the data transfer, using a new dedicated stream type akin to the crypto
 stream.
 
-# Trusting QUIC Plugins
+# QUIC Plugins Authenticity
 
-Each QUIC Plugin MUST be associated to some level of trust regarding its origin.
-For instance, a QUIC Plugin MAY be authenticated using a certificate. A QUIC
-implementation accepting plugins MAY restrict the exchange of QUIC Plugins and
-only accept plugins authenticated using the same certificate used for
-establishing the QUIC connection.
+Several possibilities exist under different threat models and offer
+different security properties. Two of them are described in the following
+sections.
 
-A QUIC endpoint MAY forbid the injection of received QUIC Plugins, while still
-being able to send QUIC Plugins to its peer.
+## Based on Central Authorities
+
+This first approach leverages the central authorities commonly
+used to secure HTTPS. In this approach, each QUIC Plugin MUST be associated to
+some level of trust regarding its origin. A QUIC Plugin MAY be authenticated
+using a certificate, itself certified by a central authority.
+Consequently, a QUIC implementation supporting QUIC plugins MAY restrict their
+exchange and only accept plugins authenticated using the same certificate
+used for establishing the QUIC connection.
+
+## Based on Plugin Transparency
+
+This second approach is presented in the {{PQUIC}} research paper, and
+suggests going beyond the restrictive approach of a centralized trust
+model. The centralized trust model obliges the server to update
+manually their list of supported plugins. It also prevents the client
+from injecting a plugin that the server has not marked as supported, e.g.
+because the server is unaware of its existence, or because its list has not been
+updated.
+
+The suggested design, called Plugin Transparency, proposes a methodology
+to transparently distribute plugins created by independent developers
+and verified by freely selected plugin validators. Those validators
+endorse verifying some publicly known safety or security properties. A
+QUIC endpoint can announce a set of conditions to accept a plugin as a
+first order logic formula bound to plugin validators. Whenever the other
+peer is willing to inject a plugin, it MUST send a (unforgeable) proof
+fulfilling the requirements expressed by this logic formula. If the
+requirements are met, then the endpoint MAY safely accept the plugin and
+MUST update its list of plugin supported. Compared to the central
+authority approach, supported plugins are updated as part of the
+protocol design or as a consequence of any change to the default logic
+formula bound to plugin acceptance.
 
 # Security Considerations
 
-TODO Security
+## Central Authorities VS Plugin Transparency
 
+The central authority model is ubiquitous to secure modern application layer
+protocols such as HTTPS. Yet, flaws such as forged certificates exist within the
+centralized trust model that, at several occasions, conducted HTTPS connections
+to suffer from the threats which they were expected to defend. Moreover, the
+poor resilience of the system can cause a denial of access to content, for
+instance when an expired certificate is not renewed.
+
+Certificate Transparency {{RFC6962}} is an attempt to address the structural
+issues hidden within the central trust assumption and prevent mistakes, rogue
+certificates and rogue authorities from weakening the system. Plugin
+Transparency bears similarities to Certificate Transparency (CT). First, its
+motivations are drawn from the same conclusions regarding the danger of central
+trust models. Second, similar to CT, it is based on distributing trust
+assumptions to secure the system. However, Plugin Transparency offers stronger
+properties and eliminates the independent monitoring entities which hold the
+resource endowment to continuously monitor the CT log in behalf of certificate
+owners. Indeed, our design offers the independent developers checking for
+spurious plugins in O(log(N)) with N the size of the log (instead of O(N) in
+CT's design). Our design also offers secure human-readable plugins names that
+unambiguously authenticate them and non-equivocation from rogue plugin
+validators. Our design is more resilient to failure by offering several
+validators that can be trusted within the logic formula. For example, a PQUIC
+peer may request a proof bound to any combination of plugin validators. The
+detail of Plugin Transparency, including performance considerations and security
+proofs are available in {{PQUIC}}.
+
+## Privacy
+
+In the central authority paradigm, there is no privacy. That is, the PQUIC
+server can set arbitrary plugins to the PQUIC client of any user as long as they
+provide a valid signature to them.
+
+In the Plugin Transparency model, privacy may be achieved under careful
+treatment. One solution is to remove the list of supported plugins from the
+transport parameters, to remove the cache system and use the default policy to
+ask for a plugin endorsement by the validators. Within the default policy, at
+least one plugin validator MUST be tasked to verify that the plugin is not
+leaking distinguishable information to the PQUIC server, such as an obvious ID
+or a more subtle fingerprinting mechanism built-in to the plugin. Moreover, the
+validator MAY require source code availability and public knowledge of the
+pseudo-identity of its developer. To avoid leaking information to the network,
+the injection of a set of plugins (while being encrypted) SHOULD be
+indistinguishable from any other set of plugins.
+
+One other solution to have privacy while supporting the cache system and 0-RTT
+injection of plugins is to advertize a set of plugins common to most PQUIC
+users. One method to achieve it would be to bind PQUIC users to a special plugin
+validator which counts at each epoch the number of PQUIC user reporting to have
+the plugin in its cache. When a sufficient number of users have it, the plugin
+validator adds this plugin to its Merkle Tree, which would allow PQUIC endpoints
+to inject it to their peers. Similar to the previous solution, injecting a set
+of plugins SHOULD be indistinguishable from any other set of plugins to an
+on-path attacker.
+
+## System Security
+
+We expect the plugin to run within a sandboxed environment with access control
+and resource management defined by the QUIC implementation running the plugin,
+and traps mechanism. The application using QUIC MUST define whitelist policies
+for plugins to access the system resources such as a file descriptor or a
+directory. Only the application is able to modify its policies.
+
+The user of the application can also set such policies, then the resulting
+access authorization depends on the intersection of both set of policies.
 
 # IANA Considerations
 
