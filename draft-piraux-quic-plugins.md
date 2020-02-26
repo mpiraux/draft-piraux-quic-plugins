@@ -382,9 +382,9 @@ formula bound to plugin acceptance.
 The central authority model is ubiquitous to secure modern application layer
 protocols such as HTTPS. Yet, flaws such as forged certificates exist within the
 centralized trust model that, at several occasions, conducted HTTPS connections
-to suffer from the threats which they were expected to defend, or to sometimes
-denial access to the content due to poor resilience of the system to failure
-(e.g., forgetting certificate renewal)
+to suffer from the threats which they were expected to defend. Moreover, the
+poor resilience of the system can cause a denial of access to content, for
+instance when an expired certificate is not renewed.
 
 Certificate Transparency {{RFC6962}} is an attempt to address the structural
 issues hidden within the central trust assumption and prevent mistakes, rogue
@@ -397,7 +397,7 @@ properties and eliminates the independent monitoring entities which hold the
 resource endowment to continuously monitor the CT log in behalf of certificate
 owners. Indeed, our design offers the independent developers checking for
 spurious plugins in O(log(N)) with N the size of the log (instead of O(N) in
-CT's design).  Our design also offers secure human-readable plugins names that
+CT's design). Our design also offers secure human-readable plugins names that
 unambiguously authenticate them and non-equivocation from rogue plugin
 validators. Our design is more resilient to failure by offering several
 validators that can be trusted within the logic formula. For example, a PQUIC
@@ -414,7 +414,7 @@ provide a valid signature to them.
 In the Plugin Transparency model, privacy may be achieved under careful
 treatment. One solution is to remove the list of supported plugins from the
 transport parameters, to remove the cache system and use the default policy to
-ask for a plugin endorsement by the validators.  Within the default policy, at
+ask for a plugin endorsement by the validators. Within the default policy, at
 least one plugin validator MUST be tasked to verify that the plugin is not
 leaking distinguishable information to the PQUIC server, such as an obvious ID
 or a more subtle fingerprinting mechanism built-in to the plugin. Moreover, the
@@ -429,22 +429,20 @@ users. One method to achieve it would be to bind PQUIC users to a special plugin
 validator which counts at each epoch the number of PQUIC user reporting to have
 the plugin in its cache. When a sufficient number of users have it, the plugin
 validator adds this plugin to its Merkle Tree, which would allow PQUIC endpoints
-to inject it to their peers.  Similar to the previous solution, injecting a set
+to inject it to their peers. Similar to the previous solution, injecting a set
 of plugins SHOULD be indistinguishable from any other set of plugins to an
 on-path attacker.
 
 ## System Security
 
 We expect the plugin to run within a sandboxed environment with access control
-and resource management defined by the host application running the plugin (the
-PQUIC implementation in our case), and traps mechanism. Regarding access control
-to system resource, the application using QUIC MUST define policies for plugins
-to whitelist access to the system resources such as a file descriptor or a
-directory. Those access policies SHOULD be modifiable by a special hook which
-authorization only to the application developer deploying PQUIC.
+and resource management defined by the QUIC implementation running the plugin,
+and traps mechanism. The application using QUIC MUST define whitelist policies
+for plugins to access the system resources such as a file descriptor or a
+directory. Only the application is able to modify its policies.
 
-The user of the application can also set policies, and the resulting access
-authorization depends on the intesection of both set of policies.
+The user of the application can also set such policies, then the resulting
+access authorization depends on the intersection of both set of policies.
 
 # IANA Considerations
 
