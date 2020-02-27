@@ -165,7 +165,7 @@ and application protocols in two parts:
 
  - a series of messages that are encoded using a specific format.
  - a Finite State Machine that defines how hosts react to commands
-   from the layer above or to the reception of a specific messages.
+   from the layer above or to the reception of a specific message.
 
 This model has been used to represent a wide range of Internet
 protocols. However, there are some limits to the flexibility of
@@ -239,7 +239,7 @@ Layer N-1
 
 On benefit of this approach is that if two implementations expose the
 same API, it possible to replace one by the other without changing anything
-in the upper layers. In pratice, the API with the upper layer is not
+in the upper layers. In practice, the API with the upper layer is not
 the only API that is exposed by a protocol implementation. For management
 and configuration purposes, many protocol implementations also expose
 a set of configuration variables that can be accessed and for some of
@@ -263,7 +263,7 @@ consult dozens of RFCs to find the complete specification of the protocol.
 Despite the importance of extensions to those key Internet protocols, we still
 do not design them under the assumption that they will evolve over decades and
 that their implementations should be made agile. In this document, we propose
-a new organisation for protocol implementations. Instead of trying to
+a new organization for protocol implementations. Instead of trying to
 pack as many features as possible inside a protocol implementation that
 is considered as a blackbox, we consider a protocol implementation as
 an open system which can be safely extended to support new features in
@@ -308,7 +308,7 @@ REQ4:
 : It should be possible for a protocol implementation to restrict the operations
 that a given plugin can execute.
 
-One possible way to realise this new architecture is to include a virtual
+One possible way to realize this new architecture is to include a virtual
 machine inside each protocol implementation and
 expose a small plugin API accessible through the virtual machine.
 Several efficient virtual machines have been proposed and used in related
@@ -328,12 +328,12 @@ and BGP {{ICNP}} and partially to TCP {{TCP-Options-BPF}}.
 
 QUIC is a recently proposed transport protocol {{I-D.ietf-quic-transport}} that
 combines the service offered by TCP and TLS. QUIC encrypts all the application
-data and most of the packet headers, and thus prevents most of the interferences
+data and most of the packet headers, and thus prevents most interferences
 from middleboxes. QUIC encode control and application data using a flexible
 framing mechanism. In this section, we describe how we combine the approach
 proposed in {{archi}} to those features to propose Pluginized QUIC.
 
-We break down a QUIC implementation execution flow into a generic subroutines.
+We break down a QUIC implementation execution flow into generic subroutines.
 These are specified functions called protocol operations. These protocol
 operations implement a given part of the QUIC protocol, for example the
 acknowledgment generation or the computation of the round-trip-time. Some are
@@ -566,7 +566,7 @@ the injection of a set of plugins (while being encrypted) SHOULD be
 indistinguishable from any other set of plugins.
 
 One other solution to have privacy while supporting the cache system and 0-RTT
-injection of plugins is to advertize a set of plugins common to most PQUIC
+injection of plugins is to announce a set of plugins common to most PQUIC
 users. One method to achieve it would be to bind PQUIC users to a special plugin
 validator which counts at each epoch the number of PQUIC user reporting to have
 the plugin in its cache. When a sufficient number of users have it, the plugin
