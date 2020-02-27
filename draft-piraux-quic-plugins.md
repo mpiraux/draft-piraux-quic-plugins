@@ -138,11 +138,14 @@ informative:
 
 --- abstract
 
-This document proposes a new mechanism for extending the QUIC protocol
-dynamically. QUIC Plugins allows modifying the behavior of a QUIC peer on a
-per-connection basis. These plugins run inside a sandboxed environment
-monitoring their executions. They can be combined to add their functionalities
-to a given QUIC connection.
+By combining functions from the transport and security layers, QUIC brings
+possibilities to application and protocol designers. In this document, we
+leverage these functions and propose a solution to dynamically extend QUIC
+implementations. Our solution relies on QUIC Plugins that allow to
+tune or extend the QUIC protocol on a per-connection basis. These
+platform-independant plugins are executed inside a sandboxed environment
+which can be included in QUIC implementations. We describe how such plugins can
+be used in different use cases. 
 
 This document is a straw-man proposal. It aims at sparking discussions on the
 proposed approach. TODO(mp): Encourage a place (ml ?) to discuss the approach
@@ -596,4 +599,4 @@ This document has no IANA actions.
 # Acknowledgments
 {:numbered="false"}
 
-TODO acknowledge.
+This work was partially supported by the MQUIC project. 
