@@ -11,11 +11,14 @@
 <meta content="Florentin Rochet" name="author">
 <meta content="Olivier Bonaventure" name="author">
 <meta content="
-       This document proposes a new mechanism for extending the QUIC protocol
-dynamically. QUIC Plugins allows modifying the behavior of a QUIC peer on a
-per-connection basis. These plugins run inside a sandboxed environment
-monitoring their executions. They can be combined to add their functionalities
-to a given QUIC connection. 
+       By combining functions from the transport and security layers, QUIC brings
+possibilities to application and protocol designers. In this document, we
+leverage these functions and propose a solution to dynamically extend QUIC
+implementations. Our solution relies on QUIC Plugins that allow to
+tune or extend the QUIC protocol on a per-connection basis. These
+platform-independant plugins are executed inside a sandboxed environment
+which can be included in QUIC implementations. We describe how such plugins can
+be used in different use cases. 
        This document is a straw-man proposal. It aims at sparking discussions on the
 proposed approach. TODO(mp): Encourage a place (ml ?) to discuss the approach 
     " name="description">
@@ -830,7 +833,7 @@ async function addMetadata(){try{const e=document.styleSheets[0].cssRules;for(le
 </tr></thead>
 <tfoot><tr>
 <td class="left">Piraux, et al.</td>
-<td class="center">Expires 27 August 2020</td>
+<td class="center">Expires 31 August 2020</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -842,12 +845,12 @@ async function addMetadata(){try{const e=document.styleSheets[0].cssRules;for(le
 <dd class="internet-draft">draft-piraux-quic-plugins-00</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2020-02-24" class="published">24 February 2020</time>
+<time datetime="2020-02-28" class="published">28 February 2020</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Experimental</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2020-08-27">27 August 2020</time></dd>
+<dd class="expires"><time datetime="2020-08-31">31 August 2020</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -876,11 +879,14 @@ async function addMetadata(){try{const e=document.styleSheets[0].cssRules;for(le
 <h1 id="title">QUIC Plugins</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">This document proposes a new mechanism for extending the QUIC protocol
-dynamically. QUIC Plugins allows modifying the behavior of a QUIC peer on a
-per-connection basis. These plugins run inside a sandboxed environment
-monitoring their executions. They can be combined to add their functionalities
-to a given QUIC connection.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-1">By combining functions from the transport and security layers, QUIC brings
+possibilities to application and protocol designers. In this document, we
+leverage these functions and propose a solution to dynamically extend QUIC
+implementations. Our solution relies on QUIC Plugins that allow to
+tune or extend the QUIC protocol on a per-connection basis. These
+platform-independant plugins are executed inside a sandboxed environment
+which can be included in QUIC implementations. We describe how such plugins can
+be used in different use cases.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 <p id="section-abstract-2">This document is a straw-man proposal. It aims at sparking discussions on the
 proposed approach. TODO(mp): Encourage a place (ml ?) to discuss the approach<a href="#section-abstract-2" class="pilcrow">¶</a></p>
 </section>
@@ -913,7 +919,7 @@ proposed approach. TODO(mp): Encourage a place (ml ?) to discuss the approach<a 
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 27 August 2020.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 31 August 2020.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -946,62 +952,67 @@ proposed approach. TODO(mp): Encourage a place (ml ?) to discuss the approach<a 
             <p id="section-boilerplate.3-1.1.1"><a href="#section-1" class="xref">1</a>.  <a href="#name-introduction" class="xref">Introduction</a><a href="#section-boilerplate.3-1.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="toc ulEmpty" id="section-boilerplate.3-1.2">
-            <p id="section-boilerplate.3-1.2.1"><a href="#section-2" class="xref">2</a>.  <a href="#name-architecture" class="xref">Architecture</a><a href="#section-boilerplate.3-1.2.1" class="pilcrow">¶</a></p>
+            <p id="section-boilerplate.3-1.2.1"><a href="#section-2" class="xref">2</a>.  <a href="#name-more-extensible-protocols" class="xref">More extensible protocols</a><a href="#section-boilerplate.3-1.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="toc ulEmpty" id="section-boilerplate.3-1.3">
-            <p id="section-boilerplate.3-1.3.1"><a href="#section-3" class="xref">3</a>.  <a href="#name-conventions-and-definitions" class="xref">Conventions and Definitions</a><a href="#section-boilerplate.3-1.3.1" class="pilcrow">¶</a></p>
+            <p id="section-boilerplate.3-1.3.1"><a href="#section-3" class="xref">3</a>.  <a href="#name-pluginizing-quic" class="xref">Pluginizing QUIC</a><a href="#section-boilerplate.3-1.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="toc ulEmpty" id="section-boilerplate.3-1.4">
-            <p id="section-boilerplate.3-1.4.1"><a href="#section-4" class="xref">4</a>.  <a href="#name-making-quic-easier-to-exten" class="xref">Making QUIC easier to extend</a><a href="#section-boilerplate.3-1.4.1" class="pilcrow">¶</a></p>
+            <p id="section-boilerplate.3-1.4.1"><a href="#section-4" class="xref">4</a>.  <a href="#name-exchanging-quic-plugins" class="xref">Exchanging QUIC Plugins</a><a href="#section-boilerplate.3-1.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="toc ulEmpty" id="section-boilerplate.3-1.5">
-            <p id="section-boilerplate.3-1.5.1"><a href="#section-5" class="xref">5</a>.  <a href="#name-what-is-a-plugin" class="xref">What is a plugin ?</a><a href="#section-boilerplate.3-1.5.1" class="pilcrow">¶</a></p>
+            <p id="section-boilerplate.3-1.5.1"><a href="#section-5" class="xref">5</a>.  <a href="#name-examples-of-use-cases" class="xref">Examples of use-cases</a><a href="#section-boilerplate.3-1.5.1" class="pilcrow">¶</a></p>
+<ul class="toc ulEmpty">
+<li class="toc ulEmpty" id="section-boilerplate.3-1.5.2.1">
+                <p id="section-boilerplate.3-1.5.2.1.1"><a href="#section-5.1" class="xref">5.1</a>.  <a href="#name-tunable-acknowledgments-pol" class="xref">Tunable acknowledgments policy</a><a href="#section-boilerplate.3-1.5.2.1.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="toc ulEmpty" id="section-boilerplate.3-1.5.2.2">
+                <p id="section-boilerplate.3-1.5.2.2.1"><a href="#section-5.2" class="xref">5.2</a>.  <a href="#name-pluggable-congestion-contro" class="xref">Pluggable congestion controller</a><a href="#section-boilerplate.3-1.5.2.2.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="toc ulEmpty" id="section-boilerplate.3-1.5.2.3">
+                <p id="section-boilerplate.3-1.5.2.3.1"><a href="#section-5.3" class="xref">5.3</a>.  <a href="#name-application-driven-stream-s" class="xref">Application-driven stream scheduling</a><a href="#section-boilerplate.3-1.5.2.3.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="toc ulEmpty" id="section-boilerplate.3-1.5.2.4">
+                <p id="section-boilerplate.3-1.5.2.4.1"><a href="#section-5.4" class="xref">5.4</a>.  <a href="#name-more-advanced-quic-extensio" class="xref">More advanced QUIC extensions</a><a href="#section-boilerplate.3-1.5.2.4.1" class="pilcrow">¶</a></p>
+</li>
+            </ul>
 </li>
           <li class="toc ulEmpty" id="section-boilerplate.3-1.6">
-            <p id="section-boilerplate.3-1.6.1"><a href="#section-6" class="xref">6</a>.  <a href="#name-examples-of-use-cases" class="xref">Examples of use-cases</a><a href="#section-boilerplate.3-1.6.1" class="pilcrow">¶</a></p>
+            <p id="section-boilerplate.3-1.6.1"><a href="#section-6" class="xref">6</a>.  <a href="#name-quic-plugins-authenticity" class="xref">QUIC Plugins Authenticity</a><a href="#section-boilerplate.3-1.6.1" class="pilcrow">¶</a></p>
 <ul class="toc ulEmpty">
 <li class="toc ulEmpty" id="section-boilerplate.3-1.6.2.1">
-                <p id="section-boilerplate.3-1.6.2.1.1"><a href="#section-6.1" class="xref">6.1</a>.  <a href="#name-application-driven-stream-s" class="xref">Application-driven stream scheduling</a><a href="#section-boilerplate.3-1.6.2.1.1" class="pilcrow">¶</a></p>
+                <p id="section-boilerplate.3-1.6.2.1.1"><a href="#section-6.1" class="xref">6.1</a>.  <a href="#name-based-on-central-authoritie" class="xref">Based on Central Authorities</a><a href="#section-boilerplate.3-1.6.2.1.1" class="pilcrow">¶</a></p>
 </li>
               <li class="toc ulEmpty" id="section-boilerplate.3-1.6.2.2">
-                <p id="section-boilerplate.3-1.6.2.2.1"><a href="#section-6.2" class="xref">6.2</a>.  <a href="#name-pluggable-congestion-contro" class="xref">Pluggable congestion controller</a><a href="#section-boilerplate.3-1.6.2.2.1" class="pilcrow">¶</a></p>
-</li>
-              <li class="toc ulEmpty" id="section-boilerplate.3-1.6.2.3">
-                <p id="section-boilerplate.3-1.6.2.3.1"><a href="#section-6.3" class="xref">6.3</a>.  <a href="#name-tunable-acknowledgments-pol" class="xref">Tunable acknowledgments policy</a><a href="#section-boilerplate.3-1.6.2.3.1" class="pilcrow">¶</a></p>
+                <p id="section-boilerplate.3-1.6.2.2.1"><a href="#section-6.2" class="xref">6.2</a>.  <a href="#name-based-on-plugin-transparenc" class="xref">Based on Plugin Transparency</a><a href="#section-boilerplate.3-1.6.2.2.1" class="pilcrow">¶</a></p>
 </li>
             </ul>
 </li>
           <li class="toc ulEmpty" id="section-boilerplate.3-1.7">
-            <p id="section-boilerplate.3-1.7.1"><a href="#section-7" class="xref">7</a>.  <a href="#name-injecting-accepting-quic-pl" class="xref">Injecting/accepting QUIC Plugins</a><a href="#section-boilerplate.3-1.7.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="toc ulEmpty" id="section-boilerplate.3-1.8">
-            <p id="section-boilerplate.3-1.8.1"><a href="#section-8" class="xref">8</a>.  <a href="#name-exchanging-quic-plugins" class="xref">Exchanging QUIC Plugins</a><a href="#section-boilerplate.3-1.8.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="toc ulEmpty" id="section-boilerplate.3-1.9">
-            <p id="section-boilerplate.3-1.9.1"><a href="#section-9" class="xref">9</a>.  <a href="#name-trusting-quic-plugins" class="xref">Trusting QUIC Plugins</a><a href="#section-boilerplate.3-1.9.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="toc ulEmpty" id="section-boilerplate.3-1.10">
-            <p id="section-boilerplate.3-1.10.1"><a href="#section-10" class="xref">10</a>. <a href="#name-security-considerations" class="xref">Security Considerations</a><a href="#section-boilerplate.3-1.10.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="toc ulEmpty" id="section-boilerplate.3-1.11">
-            <p id="section-boilerplate.3-1.11.1"><a href="#section-11" class="xref">11</a>. <a href="#name-iana-considerations" class="xref">IANA Considerations</a><a href="#section-boilerplate.3-1.11.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="toc ulEmpty" id="section-boilerplate.3-1.12">
-            <p id="section-boilerplate.3-1.12.1"><a href="#section-12" class="xref">12</a>. <a href="#name-references" class="xref">References</a><a href="#section-boilerplate.3-1.12.1" class="pilcrow">¶</a></p>
+            <p id="section-boilerplate.3-1.7.1"><a href="#section-7" class="xref">7</a>.  <a href="#name-security-considerations" class="xref">Security Considerations</a><a href="#section-boilerplate.3-1.7.1" class="pilcrow">¶</a></p>
 <ul class="toc ulEmpty">
-<li class="toc ulEmpty" id="section-boilerplate.3-1.12.2.1">
-                <p id="section-boilerplate.3-1.12.2.1.1"><a href="#section-12.1" class="xref">12.1</a>.  <a href="#name-normative-references" class="xref">Normative References</a><a href="#section-boilerplate.3-1.12.2.1.1" class="pilcrow">¶</a></p>
+<li class="toc ulEmpty" id="section-boilerplate.3-1.7.2.1">
+                <p id="section-boilerplate.3-1.7.2.1.1"><a href="#section-7.1" class="xref">7.1</a>.  <a href="#name-central-authorities-vs-plug" class="xref">Central Authorities VS Plugin Transparency</a><a href="#section-boilerplate.3-1.7.2.1.1" class="pilcrow">¶</a></p>
 </li>
-              <li class="toc ulEmpty" id="section-boilerplate.3-1.12.2.2">
-                <p id="section-boilerplate.3-1.12.2.2.1"><a href="#section-12.2" class="xref">12.2</a>.  <a href="#name-informative-references" class="xref">Informative References</a><a href="#section-boilerplate.3-1.12.2.2.1" class="pilcrow">¶</a></p>
+              <li class="toc ulEmpty" id="section-boilerplate.3-1.7.2.2">
+                <p id="section-boilerplate.3-1.7.2.2.1"><a href="#section-7.2" class="xref">7.2</a>.  <a href="#name-privacy" class="xref">Privacy</a><a href="#section-boilerplate.3-1.7.2.2.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="toc ulEmpty" id="section-boilerplate.3-1.7.2.3">
+                <p id="section-boilerplate.3-1.7.2.3.1"><a href="#section-7.3" class="xref">7.3</a>.  <a href="#name-system-security" class="xref">System Security</a><a href="#section-boilerplate.3-1.7.2.3.1" class="pilcrow">¶</a></p>
 </li>
             </ul>
 </li>
-          <li class="toc ulEmpty" id="section-boilerplate.3-1.13">
-            <p id="section-boilerplate.3-1.13.1"><a href="#section-appendix.a" class="xref"></a>  <a href="#name-acknowledgments" class="xref">Acknowledgments</a><a href="#section-boilerplate.3-1.13.1" class="pilcrow">¶</a></p>
+          <li class="toc ulEmpty" id="section-boilerplate.3-1.8">
+            <p id="section-boilerplate.3-1.8.1"><a href="#section-8" class="xref">8</a>.  <a href="#name-iana-considerations" class="xref">IANA Considerations</a><a href="#section-boilerplate.3-1.8.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="toc ulEmpty" id="section-boilerplate.3-1.14">
-            <p id="section-boilerplate.3-1.14.1"><a href="#section-appendix.b" class="xref"></a>  <a href="#name-authors-addresses" class="xref">Authors' Addresses</a><a href="#section-boilerplate.3-1.14.1" class="pilcrow">¶</a></p>
+          <li class="toc ulEmpty" id="section-boilerplate.3-1.9">
+            <p id="section-boilerplate.3-1.9.1"><a href="#section-9" class="xref">9</a>.  <a href="#name-informative-references" class="xref">Informative References</a><a href="#section-boilerplate.3-1.9.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="toc ulEmpty" id="section-boilerplate.3-1.10">
+            <p id="section-boilerplate.3-1.10.1"><a href="#section-appendix.a" class="xref"></a>  <a href="#name-acknowledgments" class="xref">Acknowledgments</a><a href="#section-boilerplate.3-1.10.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="toc ulEmpty" id="section-boilerplate.3-1.11">
+            <p id="section-boilerplate.3-1.11.1"><a href="#section-appendix.b" class="xref"></a>  <a href="#name-authors-addresses" class="xref">Authors' Addresses</a><a href="#section-boilerplate.3-1.11.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </nav>
@@ -1024,10 +1035,10 @@ exchanges TCP segments with remote hosts through the underlying IP
 protocol. Protocol designers usually define transport
 and application protocols in two parts:<a href="#section-1-1" class="pilcrow">¶</a></p>
 <ul>
-<li id="section-1-2.1">a series of messages that are encoded using a specific format<a href="#section-1-2.1" class="pilcrow">¶</a>
+<li id="section-1-2.1">a series of messages that are encoded using a specific format.<a href="#section-1-2.1" class="pilcrow">¶</a>
 </li>
         <li id="section-1-2.2">a Finite State Machine that defines how hosts react to commands
-from the layer above or the reception of a specific messages<a href="#section-1-2.2" class="pilcrow">¶</a>
+from the layer above or to the reception of a specific message.<a href="#section-1-2.2" class="pilcrow">¶</a>
 </li>
       </ul>
 <p id="section-1-3">This model has been used to represent a wide range of Internet
@@ -1043,7 +1054,7 @@ independently on receivers, but for some of them the senders need to
 adapt by at least taking into account the fact that some
 acknowledgments were delayed while measuring the round-trip-time.
 A similar discussion has started for QUIC. Given the flexibility of
-QUIC, some researchers have proposed to define an acknowledgment
+QUIC, researchers have proposed to define an acknowledgment
 strategy as a set of parameters that are exchanged in a new QUIC frame
 over each connection
 <span>[<a href="#I-D.fairhurst-quic-ack-scaling" class="xref">I-D.fairhurst-quic-ack-scaling</a>]</span>,<span>[<a href="#I-D.iyengar-quic-delayed-ack" class="xref">I-D.iyengar-quic-delayed-ack</a>]</span>. This brings
@@ -1065,302 +1076,541 @@ scheduling.<a href="#section-1-5" class="pilcrow">¶</a></p>
 <p id="section-1-6">These examples illustrate the difficulty of precisely expressing
 complex behaviors in a few parameters that are exchanged inside
 packets. In this document, we leverage the recent results in
-extending operating system kernels <span>[<a href="#TODO" class="xref">TODO</a>]</span> or web-browsers <span>[<a href="#TODO" class="xref">TODO</a>]</span>
+extending operating system kernels <span>[<a href="#eBPF" class="xref">eBPF</a>]</span> or web-browsers <span>[<a href="#WebAssembly" class="xref">WebAssembly</a>]</span>
 with virtual machines that execute bytecodes to propose a new
 approach to define complex behaviors inside protocols. We first
 describe the general architecture of the proposed approach in
 <a href="#archi" class="xref">Section 2</a>. We then provide a few examples showing how such an
 approach could be applied to the next version of the QUIC protocol in
-<a href="#pquic" class="xref">Section 4</a>.<a href="#section-1-6" class="pilcrow">¶</a></p>
+<a href="#pquic" class="xref">Section 3</a>.<a href="#section-1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="archi">
 <section id="section-2">
-      <h2 id="name-architecture">
-<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-architecture" class="section-name selfRef">Architecture</a>
-    </h2>
-</section>
-</div>
-<div id="conventions-and-definitions">
-<section id="section-3">
-      <h2 id="name-conventions-and-definitions">
-<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
+      <h2 id="name-more-extensible-protocols">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-more-extensible-protocols" class="section-name selfRef">More extensible protocols</a>
       </h2>
-<p id="section-3-1">The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
-"SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this
-document are to be interpreted as described in BCP 14 <span>[<a href="#RFC2119" class="xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="xref">RFC8174</a>]</span>
-when, and only when, they appear in all capitals, as shown here.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-2-1">In a traditional layered protocol model, a protocol implementation
+is often represented as a black-box that uses the service provided
+by the underlying layer to offer an enhanced through, typically
+through an Application Programming Interface (API), to the
+upper layer. This is illustrated in <a href="#fig-api" class="xref">Figure 1</a>.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<span id="name-a-protocol-implementation-e"></span><div id="fig-api">
+<figure id="figure-1">
+        <div class="artwork art-text alignLeft" id="section-2-2.1">
+<pre>
+Layer N+1
+---------- +----------- API -----------+
+Management |                           |
+Protocol   |                           |
+&lt;---------&gt;|  Protocol implementation  |
+           |                           |
+           +---------------------------+
+                 ||         /\
+                 \/         ||
+-----------------------------------
+Layer N-1
+
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-a-protocol-implementation-e" class="selfRef">A protocol implementation exposes an API to the upper layer</a>
+        </figcaption></figure>
+</div>
+<p id="section-2-3">On benefit of this approach is that if two implementations expose the
+same API, it possible to replace one by the other without changing anything
+in the upper layers. In practice, the API with the upper layer is not
+the only API that is exposed by a protocol implementation. For management
+and configuration purposes, many protocol implementations also expose
+a set of configuration variables that can be accessed and for some of
+them be modified by network management protocols such as SNMP or IPFIX.<a href="#section-2-3" class="pilcrow">¶</a></p>
+<p id="section-2-4">These management approaches expose abstract configuration parameters and
+statistics about the key operations performed by a protocol implementation.
+They have been useful in configuring and operating a
+wide range of protocol implementations. As different implementations expose
+the same abstraction, it becomes possible for operators to configure
+and manage different implementations by using the same tool in a unified
+manner.<a href="#section-2-4" class="pilcrow">¶</a></p>
+<p id="section-2-5">Experience with successful Internet protocols shows that once a protocol
+gets (widely) deployed, it attracts new use cases and proposals to
+extend and improve it. Most of the key Internet protocols, including IP, TCP,
+HTTP, DNS, BGP, OSPF, IS-IS, ... have been improved over the years. Today,
+the developer of an implementation of any of these protocols need to
+consult dozens of RFCs to find the complete specification of the protocol.<a href="#section-2-5" class="pilcrow">¶</a></p>
+<p id="section-2-6">Despite the importance of extensions to those key Internet protocols, we still
+do not design them under the assumption that they will evolve over decades and
+that their implementations should be made agile. In this document, we propose
+a new organization for protocol implementations. Instead of trying to
+pack as many features as possible inside a protocol implementation that
+is considered as a blackbox, we consider a protocol implementation as
+an open system which can be safely extended to support new features in
+a safe and agile manner. Our vision is that such an implementation
+exposes an internal API which can be exploited by extensions that we call
+Plugins in this document. This is illustrated in <a href="#fig-plugins" class="xref">Figure 2</a>.<a href="#section-2-6" class="pilcrow">¶</a></p>
+<span id="name-a-pluginized-protocol-imple"></span><div id="fig-plugins">
+<figure id="figure-2">
+        <div class="artwork art-text alignLeft" id="section-2-7.1">
+<pre>
+Layer N+1
+---------- +----------- API -----------+
+Management |  ( )       ( )       (x)&lt;------ Plugin_A
+Protocol   |                           |
+&lt;---------&gt;|  Protocol implementation  |
+           |       ( )       (x)&lt;--------- Plugin_B
+           +---------------------------+
+                 ||         /\
+                 \/         ||
+-----------------------------------
+
+
+</pre>
+</div>
+<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<a href="#name-a-pluginized-protocol-imple" class="selfRef">A pluginized protocol implementation exposes an internal API that enables plugins to dynamically extend its operation</a>
+        </figcaption></figure>
+</div>
+<p id="section-2-8">There are different ways of implementing the idea of dynamically
+extending protocols by using plugins. We list here some requirements
+that any solution should support:<a href="#section-2-8" class="pilcrow">¶</a></p>
+<dl class="dlParallel" id="section-2-9">
+        <dt id="section-2-9.1">REQ1:</dt>
+        <dd id="section-2-9.2">
+  Different implementations should expose the same plugin API, e.g. as different
+implementations expose the same SNMP MIB.<a href="#section-2-9.2" class="pilcrow">¶</a>
+</dd>
+        <dt id="section-2-9.3">REQ2:</dt>
+        <dd id="section-2-9.4">
+  It should be possible to dynamically attach a plugin to one instance of an
+implementation. For instance, for a connection-oriented protocol, it
+should be possible to associate a plugin to a given connection. Different 
+connections could have different sets of plugins.<a href="#section-2-9.4" class="pilcrow">¶</a>
+</dd>
+        <dt id="section-2-9.5">REQ3:</dt>
+        <dd id="section-2-9.6">
+  It should be possible to execute the same plugin on different interoperable 
+implementations of the same protocol.<a href="#section-2-9.6" class="pilcrow">¶</a>
+</dd>
+        <dt id="section-2-9.7">REQ4:</dt>
+        <dd id="section-2-9.8">
+  It should be possible for a protocol implementation to restrict the operations
+that a given plugin can execute.<a href="#section-2-9.8" class="pilcrow">¶</a>
+</dd>
+      </dl>
+<p id="section-2-10">One possible way to realize this new architecture is to include a virtual
+machine inside each protocol implementation and
+expose a small plugin API accessible through the virtual machine.
+Several efficient virtual machines have been proposed and used in related
+environments <span>[<a href="#eBPF" class="xref">eBPF</a>]</span> <span>[<a href="#WebAssembly" class="xref">WebAssembly</a>]</span>. They provide a sandbox that controls the
+operations that the plugin can execute and the memory that it can access.
+Since the same virtual machine can be installed on different platforms, it
+becomes possible to execute the same plugin on different implementations of
+a given protocol that expose the same plugins API.<a href="#section-2-10" class="pilcrow">¶</a></p>
+<p id="section-2-11">The idea of extending protocols through plugins can be applied to
+different Internet protocols. In this document, we focus adding plugins
+to QUIC since it is a recent and flexible protocol that includes
+useful security features. A similar approach has been applied to OSPF
+and BGP <span>[<a href="#ICNP" class="xref">ICNP</a>]</span> and partially to TCP <span>[<a href="#TCP-Options-BPF" class="xref">TCP-Options-BPF</a>]</span>.<a href="#section-2-11" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="pquic">
-<section id="section-4">
-      <h2 id="name-making-quic-easier-to-exten">
-<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-making-quic-easier-to-exten" class="section-name selfRef">Making QUIC easier to extend</a>
-    </h2>
-</section>
-</div>
-<div id="what-is-a-plugin-">
-<section id="section-5">
-      <h2 id="name-what-is-a-plugin">
-<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-what-is-a-plugin" class="section-name selfRef">What is a plugin ?</a>
+<section id="section-3">
+      <h2 id="name-pluginizing-quic">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-pluginizing-quic" class="section-name selfRef">Pluginizing QUIC</a>
       </h2>
-<p id="section-5-1">TODO(mp): Change the section title, I don't like it<a href="#section-5-1" class="pilcrow">¶</a></p>
-<p id="section-5-2">A QUIC Plugin consists of platform-independent bytecode which modify or extend the
-behavior of a QUIC implementation. This document considers the behavior of a
-QUIC implementation as a set of functions, also named protocol operations.
-Adding the functionality of a QUIC Plugin, i.e. adding or replacing a set of
-protocol operations, to a QUIC connection is referred to as injecting a QUIC
-Plugin. Injecting a plugin is limited to a given connection.<a href="#section-5-2" class="pilcrow">¶</a></p>
-<p id="section-5-3">Its bytecode is run inside a sandboxed execution environment. It accesses to the
-state of a QUIC connection through a restricted API.<a href="#section-5-3" class="pilcrow">¶</a></p>
-<p id="section-5-4">The scope of a QUIC Plugin is restricted by both the limitations of this
+<p id="section-3-1">QUIC is a recently proposed transport protocol <span>[<a href="#I-D.ietf-quic-transport" class="xref">I-D.ietf-quic-transport</a>]</span> that
+combines the service offered by TCP and TLS. QUIC encrypts all the application
+data and most of the packet headers, and thus prevents most interferences
+from middleboxes. QUIC encodes control and application data using a flexible
+framing mechanism. In this section, we describe how we combine the approach
+proposed in <a href="#archi" class="xref">Section 2</a> to those features to propose Pluginized QUIC.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2">We break down a QUIC implementation execution flow into generic subroutines.
+These are specified functions called protocol operations. These protocol
+operations implement a given part of the QUIC protocol, for example the
+acknowledgment generation or the computation of the round-trip-time. Some are
+generic and depend on a parameter, for instance parsing a QUIC frame is a
+generic operation that depends on the type of QUIC frame. This version of the
+document does not elaborate exhaustively on the protocol operations that compose
+a Pluginized QUIC implementation. The next versions of this document will
+work on defining a set of protocol operations.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<p id="section-3-3">A QUIC Plugin consists of platform-independent bytecode which modify or extend
+the behavior of a QUIC implementation. Adding the functionality of a QUIC Plugin
+consists in adding or replacing a set of protocol operations implemented by this
+bytecode. This action of adding a QUIC plugin to a QUIC connection is referred
+to as injecting a QUIC Plugin. Injecting a plugin is limited to a given
+QUIC connection.<a href="#section-3-3" class="pilcrow">¶</a></p>
+<p id="section-3-4">Its bytecode is run inside a sandboxed execution environment. It accesses to the
+state of a QUIC connection through a restricted API.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5">The scope of a QUIC Plugin is restricted by both the limitations of this
 execution environment, e.g. in terms of instruction set and quantity, and by the
 surface exposed by this API, e.g. the quantity of state that can be read from or
 written to by a plugin. The API also defines a set of protocol operations to
 which QUIC Plugins can be injected. For instance, a QUIC implementation might
 restrict QUIC Plugins injection to its acknowledgment generation policy, e.g.
-the protocol operation deciding whether sending an ACK frame is needed.<a href="#section-5-4" class="pilcrow">¶</a></p>
-<p id="section-5-5">A QUIC Plugin can be injected by several means. The application can inject
+the protocol operation deciding whether sending an ACK frame is needed.<a href="#section-3-5" class="pilcrow">¶</a></p>
+<p id="section-3-6">A QUIC Plugin can be injected by several means. The application can inject
 plugins to tune its underlying QUIC connection. QUIC peers can exchange and
-inject plugins over a QUIC connection, as described in <a href="#exchanging-plugins" class="xref">Section 8</a>.
-Users can set a default configuration to inject plugins on their devices.<a href="#section-5-5" class="pilcrow">¶</a></p>
+inject plugins over a QUIC connection, as described in <a href="#exchanging-plugins" class="xref">Section 4</a>.
+Users can set a default configuration to inject plugins on their devices.<a href="#section-3-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="exchanging-plugins">
+<section id="section-4">
+      <h2 id="name-exchanging-quic-plugins">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-exchanging-quic-plugins" class="section-name selfRef">Exchanging QUIC Plugins</a>
+      </h2>
+<p id="section-4-1">Injecting QUIC Plugins locally in the underlying QUIC implementation allows the
+application to tune it to its needs. But some use-cases requires adapting the
+peer behavior. In those cases, being able to exchange plugins helps to fill
+this gap.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2">QUIC offers both data multiplexing and encryption. Using those mechanisms, the
+QUIC Plugins used for a given connection could be safely transferred over this
+connection in a new dedicated stream, akin to the crypto stream. This does not
+impact the application data transfer, as illustrated in
+<a href="#fig-exchanging-plugins" class="xref">Figure 3</a>. In this example, an HTTP/3 request is interleaved
+with the transfer from the server to the client of a QUIC Plugin controlling the
+acknowledgment policy.<a href="#section-4-2" class="pilcrow">¶</a></p>
+<span id="name-interleaving-a-quic-plugin-"></span><div id="fig-exchanging-plugins">
+<figure id="figure-3">
+        <div class="artwork art-text alignLeft" id="section-4-3.1">
+<pre>
+ Client                             Server
+  |     (QUIC connection handshake)     |
+  |                                     |
+  |       STREAM[0, "HTTP/3 GET"]       |
+  |------------------------------------&gt;|
+  |                                     |
+  |       STREAM[0, "200 OK..."]        |
+  |&lt;------------------------------------|
+  |                                     |
+  |    PLUGIN["ack_delay", bytecode]    |
+  |&lt;------------------------------------|
+  |                                     |
+  |       STREAM[0, "...", FIN]         |
+  |&lt;------------------------------------|
+</pre>
+</div>
+<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
+<a href="#name-interleaving-a-quic-plugin-" class="selfRef">Interleaving a QUIC Plugin transfer over a QUIC connection</a>
+        </figcaption></figure>
+</div>
+<p id="section-4-4">A local policy could restrict the type of plugins that can be
+exchanged and injected, e.g. in terms of connection state accessed and in terms
+of protocol operations affected. This version of document does not describe
+further how the negotiation of QUIC Plugins takes place.<a href="#section-4-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="examples-of-use-cases">
-<section id="section-6">
+<section id="section-5">
       <h2 id="name-examples-of-use-cases">
-<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-examples-of-use-cases" class="section-name selfRef">Examples of use-cases</a>
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-examples-of-use-cases" class="section-name selfRef">Examples of use-cases</a>
       </h2>
-<p id="section-6-1">There exist several cases in which being able to modify the behavior of a QUIC
-peer is beneficial. <span>[<a href="#PQUIC" class="xref">PQUIC</a>]</span> demonstrates how this approach can be used to
-deploy existing QUIC extensions such as Multipath QUIC
-<span>[<a href="#I-D.deconinck-multipath-quic" class="xref">I-D.deconinck-multipath-quic</a>]</span> and <span>[<a href="#QUIC-FEC" class="xref">QUIC-FEC</a>]</span>. This first version of the
+<p id="section-5-1">There exist several cases in which being able to modify the behavior of a QUIC
+peer, either locally or remotely, is beneficial. This first version of the
 document focus on enabling the extension of simpler QUIC mechanisms. Three of
 them are documented in this section. Contributions regarding new uses-cases are
-welcomed.<a href="#section-6-1" class="pilcrow">¶</a></p>
-<div id="application-driven-stream-scheduling">
-<section id="section-6.1">
-        <h3 id="name-application-driven-stream-s">
-<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-application-driven-stream-s" class="section-name selfRef">Application-driven stream scheduling</a>
+welcomed.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<div id="tunable-acknowledgments-policy">
+<section id="section-5.1">
+        <h3 id="name-tunable-acknowledgments-pol">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-tunable-acknowledgments-pol" class="section-name selfRef">Tunable acknowledgments policy</a>
         </h3>
-<p id="section-6.1-1">QUIC streams allow the application to multiplex several bytestreams over a
-single QUIC connection. Yet, the QUIC specification does not provide a mechanism
-for exchanging prioritization information nor for indicating the relative
-priority of streams. As described in Section 2.3 of <span>[<a href="#I-D.ietf-quic-transport" class="xref">I-D.ietf-quic-transport</a>]</span>,
-A QUIC implementation SHOULD provide ways in which an application can indicate
-the relative priority of streams. A QUIC implementation could allow QUIC
-Plugins to extend or override its stream scheduler.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
-<p id="section-6.1-2">For other applications over QUIC with a broad range of requirements, a flexible
-approach for defining the stream scheduling policy is key to best fit their
-needs. QUIC Plugin offer a flexible way to embed application knowledge inside
-the QUIC implementation.<a href="#section-6.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.1-1">The large diversity of Internet paths also counts networks involving a
+significant path asymmetry. Those paths often impact the ability of the receiver
+to provide feedback to the sender. The performance of transport protocols such
+as TCP has been studied in depth and reported in <span>[<a href="#RFC3449" class="xref">RFC3449</a>]</span>. A method for
+controlling the rate of receiver feedback of TCP, i.e. the rate of ACKs, has
+been proposed in <span>[<a href="#RFC5690" class="xref">RFC5690</a>]</span>.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">Proposals for controlling the acknowledgment policy of QUIC already exist.
+<span>[<a href="#I-D.fairhurst-quic-ack-scaling" class="xref">I-D.fairhurst-quic-ack-scaling</a>]</span> proposes a change to the default policy for
+asymmetric paths. <span>[<a href="#I-D.iyengar-quic-delayed-ack" class="xref">I-D.iyengar-quic-delayed-ack</a>]</span> describes a QUIC extension
+enabling a QUIC endpoint to control the acknowledgment policy of its peer. For
+that purpose, they model the acknowledgment policy depending on a few parameters
+and introduce a new QUIC frame to signal new values for those parameters.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.1-3">A QUIC Plugin could allow implementing a new acknowledgment with a fine
+granularity. For example, in the case of an application that generates bursty
+traffic, such as a real-time video streaming application, a QUIC Plugin allows
+embedding application knowledge, i.e. the characteristics of such bursts, inside
+the acknowledgment generation policy. Exchanging and injecting this plugin
+allows controlling the other peer behavior.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="pluggable-congestion-controller">
-<section id="section-6.2">
+<section id="section-5.2">
         <h3 id="name-pluggable-congestion-contro">
-<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-pluggable-congestion-contro" class="section-name selfRef">Pluggable congestion controller</a>
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-pluggable-congestion-contro" class="section-name selfRef">Pluggable congestion controller</a>
         </h3>
-<p id="section-6.2-1">There exists many congestion control algorithms. Each of them has
+<p id="section-5.2-1">There exists many congestion control algorithms. Each of them has
 been designed for a given context, i.e. a range of applications and a range of
-Internet paths. For instance, Reno <span>[<a href="#TODO" class="xref">TODO</a>]</span> has been designed for optimizing the
-web use-case on common Internet paths. Westwood <span>[<a href="#TODO" class="xref">TODO</a>]</span> is a modification of
+Internet paths. For instance, Reno <span>[<a href="#Reno" class="xref">Reno</a>]</span> has been designed for optimizing the
+web use-case on common Internet paths. Westwood <span>[<a href="#Westwood" class="xref">Westwood</a>]</span> is a modification of
 Reno to better accommodate Internet paths with a high bandwidth-delay product,
-such as satellite links.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
-<p id="section-6.2-2">Efforts to restructure congestion controllers within a common framework have
+such as satellite links.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-2">Efforts to restructure congestion controllers within a common framework have
 been presented in past works such as <span>[<a href="#CCP" class="xref">CCP</a>]</span>. Such a framework eases the
 development and maintenance of those algorithms. It also enables rapid
-prototyping and A/B testing.<a href="#section-6.2-2" class="pilcrow">¶</a></p>
-<p id="section-6.2-3"><span>[<a href="#TCP-Options-BPF" class="xref">TCP-Options-BPF</a>]</span> proposes a new TCP Option, leveraging the TCP-BPF
+prototyping and A/B testing.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
+<p id="section-5.2-3"><span>[<a href="#TCP-Options-BPF" class="xref">TCP-Options-BPF</a>]</span> proposes a new TCP Option, leveraging the TCP-BPF
 framework, to negotiate the congestion controller to use.
 The QUIC specification does not specify a similar mechanism. Negotiating the
 congestion controller used allows one endpoint to tune the other, provided that
 it implements the algorithm. QUIC Plugins could allow the application to directly
 plug the required congestion controller and to exchange it with the other peer.
 This flexibility allows the application to choose the best congestion controller
-for its requirements.<a href="#section-6.2-3" class="pilcrow">¶</a></p>
+for its requirements.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="tunable-acknowledgments-policy">
-<section id="section-6.3">
-        <h3 id="name-tunable-acknowledgments-pol">
-<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-tunable-acknowledgments-pol" class="section-name selfRef">Tunable acknowledgments policy</a>
+<div id="application-driven-stream-scheduling">
+<section id="section-5.3">
+        <h3 id="name-application-driven-stream-s">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-application-driven-stream-s" class="section-name selfRef">Application-driven stream scheduling</a>
         </h3>
-<p id="section-6.3-1">The large diversity of Internet paths also counts networks involving a
-significant path asymmetry. Those paths often impact the ability of the receiver
-to provide feedback to the sender. The performance of transport protocols such
-as TCP has been studied in depth and reported in <span>[<a href="#RFC3449" class="xref">RFC3449</a>]</span>. A method for
-controlling the rate of receiver feedback of TCP, i.e. the rate of ACKs, has
-been proposed in <span>[<a href="#RFC5690" class="xref">RFC5690</a>]</span>.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
-<p id="section-6.3-2">Proposals for controlling the acknowledgment policy of QUIC already exist.
-<span>[<a href="#I-D.fairhurst-quic-ack-scaling" class="xref">I-D.fairhurst-quic-ack-scaling</a>]</span> proposes a change to the default policy for
-asymmetric paths. <span>[<a href="#I-D.iyengar-quic-delayed-ack" class="xref">I-D.iyengar-quic-delayed-ack</a>]</span> describes a QUIC extension
-enabling a QUIC endpoint to control the acknowledgment policy of its peer. For
-that purpose, they model the acknowledgment policy depending on a few parameters
-and introduce a new QUIC frame to signal new values for those parameters.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
-<p id="section-6.3-3">A QUIC Plugin could allow implementing a new acknowledgment with a fine
-granularity. For example, in the case of an application that generates bursty
-traffic, such as a real-time video streaming application, a QUIC Plugin allows
-embedding application knowledge, i.e. the characteristics of such bursts, inside
-the acknowledgment generation policy. Exchanging and injecting this plugin
-allows controlling the other peer behavior.<a href="#section-6.3-3" class="pilcrow">¶</a></p>
+<p id="section-5.3-1">QUIC streams allow the application to multiplex several bytestreams over a
+single QUIC connection. Yet, the QUIC specification does not provide a mechanism
+for exchanging prioritization information nor for indicating the relative
+priority of streams. As described in Section 2.3 of <span>[<a href="#I-D.ietf-quic-transport" class="xref">I-D.ietf-quic-transport</a>]</span>,
+"A QUIC implementation SHOULD provide ways in which an application can indicate
+the relative priority of streams". A QUIC implementation could allow QUIC
+Plugins to extend or override its stream scheduler.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.3-2">For other applications over QUIC with a broad range of requirements, a flexible
+approach for defining the stream scheduling policy is key to best fit their
+needs. QUIC Plugin offer a flexible way to embed application knowledge inside
+the QUIC implementation.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="more-advanced-quic-extensions">
+<section id="section-5.4">
+        <h3 id="name-more-advanced-quic-extensio">
+<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-more-advanced-quic-extensio" class="section-name selfRef">More advanced QUIC extensions</a>
+        </h3>
+<p id="section-5.4-1">Exposing more protocol operations through the API proposed to plugins by the
+QUIC implementation allows implementing more advanced QUIC Plugins. Each
+protocol operation offers flexibility over the QUIC implementation.
+<span>[<a href="#PQUIC" class="xref">PQUIC</a>]</span> demonstrates how this approach can be used to implement Multipath QUIC
+<span>[<a href="#I-D.deconinck-multipath-quic" class="xref">I-D.deconinck-multipath-quic</a>]</span> and <span>[<a href="#QUIC-FEC" class="xref">QUIC-FEC</a>]</span> entirely using plugins.<a href="#section-5.4-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
 </div>
-<div id="injectingaccepting-quic-plugins">
-<section id="section-7">
-      <h2 id="name-injecting-accepting-quic-pl">
-<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-injecting-accepting-quic-pl" class="section-name selfRef">Injecting/accepting QUIC Plugins</a>
+<div id="quic-plugins-authenticity">
+<section id="section-6">
+      <h2 id="name-quic-plugins-authenticity">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-quic-plugins-authenticity" class="section-name selfRef">QUIC Plugins Authenticity</a>
       </h2>
-<p id="section-7-1">Injecting a QUIC Plugin to a QUIC implementation requires several
-modifications. First, an execution environment is required to execute the
-plugin, as it does not consist of executable machine code. This environment
-executes the bytecode of QUIC Plugins. This bytecode is portable and has a
-limited instruction set, such as eBPF or WebAssembly bytecode. The plugin runs
-thus in an isolated environment inside the QUIC implementation.<a href="#section-7-1" class="pilcrow">¶</a></p>
-<p id="section-7-2">The QUIC implementation is responsible for interacting with the plugin, i.e.
-running its bytecode and providing restricted access to the QUIC connection
-state. For example, a QUIC implementation that accepts plugins deciding whether
-an acknowledgment has to be sent should execute the plugin every time this
-decision is considered and provide access to relevant state for computing this
-decision. A QUIC implementation that accepts plugins implementing a congestion
-controller may provide write access to some state, for example the congestion
-window of a given path, so that the plugin can modify the state of the
-QUIC connection.<a href="#section-7-2" class="pilcrow">¶</a></p>
+<p id="section-6-1">Several possibilities exist under different threat models and offer
+different security properties. Two of them are described in the following
+sections.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<div id="based-on-central-authorities">
+<section id="section-6.1">
+        <h3 id="name-based-on-central-authoritie">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-based-on-central-authoritie" class="section-name selfRef">Based on Central Authorities</a>
+        </h3>
+<p id="section-6.1-1">This first approach leverages the central authorities commonly
+used to secure HTTPS. In this approach, each QUIC Plugin MUST be associated to
+some level of trust regarding its origin. A QUIC Plugin MAY be authenticated
+using a certificate, itself certified by a central authority.
+Consequently, a QUIC implementation supporting QUIC plugins MAY restrict their
+exchange and only accept plugins authenticated using the same certificate
+used for establishing the QUIC connection.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="exchanging-plugins">
-<section id="section-8">
-      <h2 id="name-exchanging-quic-plugins">
-<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-exchanging-quic-plugins" class="section-name selfRef">Exchanging QUIC Plugins</a>
-      </h2>
-<p id="section-8-1">Injecting QUIC Plugins locally in the underlying QUIC implementation allows the
-application to tune it to its needs. But some use-cases requires adapting the
-peer behavior. In those cases, being able to exchange plugins helps to fill
-that gap.<a href="#section-8-1" class="pilcrow">¶</a></p>
-<p id="section-8-2">In order to negotiate the use of QUIC Plugins, new transport parameters could be
-used to announce the plugins that should be injected. Each QUIC peer announces
-the plugins it supports and the plugins that it would like to inject to the
-other peer. A local policy could restrict the type of plugins that can be
-exchanged and injected. Once the QUIC handshake completes and the QUIC Plugins
-transport parameters have been exchanged, plugins exchange can take place next
-to the data transfer, using a new dedicated stream type akin to the crypto
-stream.<a href="#section-8-2" class="pilcrow">¶</a></p>
+<div id="based-on-plugin-transparency">
+<section id="section-6.2">
+        <h3 id="name-based-on-plugin-transparenc">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-based-on-plugin-transparenc" class="section-name selfRef">Based on Plugin Transparency</a>
+        </h3>
+<p id="section-6.2-1">This second approach is presented in the <span>[<a href="#PQUIC" class="xref">PQUIC</a>]</span> research paper, and
+suggests going beyond the restrictive approach of a centralized trust
+model. The centralized trust model obliges the server to update
+manually their list of supported plugins. It also prevents the client
+from injecting a plugin that the server has not marked as supported, e.g.
+because the server is unaware of its existence, or because its list has not been
+updated.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<p id="section-6.2-2">The suggested design, called Plugin Transparency, proposes a methodology
+to transparently distribute plugins created by independent developers
+and verified by freely selected plugin validators. Those validators
+endorse verifying some publicly known safety or security properties. A
+QUIC endpoint can announce a set of conditions to accept a plugin as a
+first order logic formula bound to plugin validators. Whenever the other
+peer is willing to inject a plugin, it MUST send a (unforgeable) proof
+fulfilling the requirements expressed by this logic formula. If the
+requirements are met, then the endpoint MAY safely accept the plugin and
+MUST update its list of plugin supported. Compared to the central
+authority approach, supported plugins are updated as part of the
+protocol design or as a consequence of any change to the default logic
+formula bound to plugin acceptance.<a href="#section-6.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="trusting-quic-plugins">
-<section id="section-9">
-      <h2 id="name-trusting-quic-plugins">
-<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-trusting-quic-plugins" class="section-name selfRef">Trusting QUIC Plugins</a>
-      </h2>
-<p id="section-9-1">Each QUIC Plugin MUST be associated to some level of trust regarding its origin.
-For instance, a QUIC Plugin MAY be authenticated using a certificate. A QUIC
-implementation accepting plugins MAY restrict the exchange of QUIC Plugins and
-only accept plugins authenticated using the same certificate used for
-establishing the QUIC connection.<a href="#section-9-1" class="pilcrow">¶</a></p>
-<p id="section-9-2">A QUIC endpoint MAY forbid the injection of received QUIC Plugins, while still
-being able to send QUIC Plugins to its peer.<a href="#section-9-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-considerations">
-<section id="section-10">
+<section id="section-7">
       <h2 id="name-security-considerations">
-<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
-<p id="section-10-1">TODO Security<a href="#section-10-1" class="pilcrow">¶</a></p>
+<div id="central-authorities-vs-plugin-transparency">
+<section id="section-7.1">
+        <h3 id="name-central-authorities-vs-plug">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-central-authorities-vs-plug" class="section-name selfRef">Central Authorities VS Plugin Transparency</a>
+        </h3>
+<p id="section-7.1-1">The central authority model is ubiquitous to secure modern application layer
+protocols such as HTTPS. Yet, flaws such as forged certificates exist within the
+centralized trust model that, at several occasions, conducted HTTPS connections
+to suffer from the threats which they were expected to defend. Moreover, the
+poor resilience of the system can cause a denial of access to content, for
+instance when an expired certificate is not renewed.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<p id="section-7.1-2">Certificate Transparency <span>[<a href="#RFC6962" class="xref">RFC6962</a>]</span> is an attempt to address the structural
+issues hidden within the central trust assumption and prevent mistakes, rogue
+certificates and rogue authorities from weakening the system. Plugin
+Transparency bears similarities to Certificate Transparency (CT). First, its
+motivations are drawn from the same conclusions regarding the danger of central
+trust models. Second, similar to CT, it is based on distributing trust
+assumptions to secure the system. However, Plugin Transparency offers stronger
+properties and eliminates the independent monitoring entities which hold the
+resource endowment to continuously monitor the CT log in behalf of certificate
+owners. Indeed, our design offers the independent developers checking for
+spurious plugins in O(log(N)) with N the size of the log (instead of O(N) in
+CT's design). Our design also offers secure human-readable plugins names that
+unambiguously authenticate them and non-equivocation from rogue plugin
+validators. Our design is more resilient to failure by offering several
+validators that can be trusted within the logic formula. For example, a PQUIC
+peer may request a proof bound to any combination of plugin validators. The
+detail of Plugin Transparency, including performance considerations and security
+proofs are available in <span>[<a href="#PQUIC" class="xref">PQUIC</a>]</span>.<a href="#section-7.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="privacy">
+<section id="section-7.2">
+        <h3 id="name-privacy">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-privacy" class="section-name selfRef">Privacy</a>
+        </h3>
+<p id="section-7.2-1">In the central authority paradigm, there is no privacy. That is, the PQUIC
+server can set arbitrary plugins to the PQUIC client of any user as long as they
+provide a valid signature to them.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<p id="section-7.2-2">In the Plugin Transparency model, privacy may be achieved under careful
+treatment. One solution is to remove the list of supported plugins from the
+transport parameters, to remove the cache system and use the default policy to
+ask for a plugin endorsement by the validators. Within the default policy, at
+least one plugin validator MUST be tasked to verify that the plugin is not
+leaking distinguishable information to the PQUIC server, such as an obvious ID
+or a more subtle fingerprinting mechanism built-in to the plugin. Moreover, the
+validator MAY require source code availability and public knowledge of the
+pseudo-identity of its developer. To avoid leaking information to the network,
+the injection of a set of plugins (while being encrypted) SHOULD be
+indistinguishable from any other set of plugins.<a href="#section-7.2-2" class="pilcrow">¶</a></p>
+<p id="section-7.2-3">One other solution to have privacy while supporting the cache system and 0-RTT
+injection of plugins is to announce a set of plugins common to most PQUIC
+users. One method to achieve it would be to bind PQUIC users to a special plugin
+validator which counts at each epoch the number of PQUIC user reporting to have
+the plugin in its cache. When a sufficient number of users have it, the plugin
+validator adds this plugin to its Merkle Tree, which would allow PQUIC endpoints
+to inject it to their peers. Similar to the previous solution, injecting a set
+of plugins SHOULD be indistinguishable from any other set of plugins to an
+on-path attacker.<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="system-security">
+<section id="section-7.3">
+        <h3 id="name-system-security">
+<a href="#section-7.3" class="section-number selfRef">7.3. </a><a href="#name-system-security" class="section-name selfRef">System Security</a>
+        </h3>
+<p id="section-7.3-1">We expect the plugin to run within a sandboxed environment with access control
+and resource management defined by the QUIC implementation running the plugin,
+and traps mechanism. The application using QUIC MUST define whitelist policies
+for plugins to access the system resources such as a file descriptor or a
+directory. Only the application is able to modify its policies.<a href="#section-7.3-1" class="pilcrow">¶</a></p>
+<p id="section-7.3-2">The user of the application can also set such policies, then the resulting
+access authorization depends on the intersection of both set of policies.<a href="#section-7.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="iana-considerations">
-<section id="section-11">
+<section id="section-8">
       <h2 id="name-iana-considerations">
-<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
-<p id="section-11-1">This document has no IANA actions.<a href="#section-11-1" class="pilcrow">¶</a></p>
+<p id="section-8-1">This document has no IANA actions.<a href="#section-8-1" class="pilcrow">¶</a></p>
 </section>
 </div>
-<section id="section-12">
-      <h2 id="name-references">
-<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-references" class="section-name selfRef">References</a>
+<section id="section-9">
+      <h2 id="name-informative-references">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
       </h2>
-<section id="section-12.1">
-        <h3 id="name-normative-references">
-<a href="#section-12.1" class="section-number selfRef">12.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
-        </h3>
-<dl class="references">
-<dt id="RFC2119">[RFC2119]</dt>
-        <dd>
-<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2119">https://www.rfc-editor.org/info/rfc2119</a>&gt;</span>. </dd>
-<dt id="RFC8174">[RFC8174]</dt>
-      <dd>
-<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8174">https://www.rfc-editor.org/info/rfc8174</a>&gt;</span>. </dd>
-</dl>
-</section>
-<section id="section-12.2">
-        <h3 id="name-informative-references">
-<a href="#section-12.2" class="section-number selfRef">12.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
-        </h3>
 <dl class="references">
 <dt id="CCP">[CCP]</dt>
-        <dd>
-<span class="refAuthor">Narayan, A.</span><span class="refAuthor">, Cangialosi, F.</span><span class="refAuthor">, Raghavan, D.</span><span class="refAuthor">, Goyal, P.</span><span class="refAuthor">, Narayana, S.</span><span class="refAuthor">, Mittal, R.</span><span class="refAuthor">, Alizadeh, M.</span><span class="refAuthor">, and H. Balakrishnan</span>, <span class="refTitle">"Restructuring Endpoint Congestion Control"</span>, <time datetime="2018-08">August 2018</time>. </dd>
-<dt id="I-D.deconinck-multipath-quic">[I-D.deconinck-multipath-quic]</dt>
-        <dd>
-<span class="refAuthor">Coninck, Q.</span><span class="refAuthor"> and O. Bonaventure</span>, <span class="refTitle">"Multipath Extension for QUIC"</span>, <span class="seriesInfo">Internet Draft, draft-deconinck-multipath-quic-00</span>, <time datetime="2017-10-30">30 October 2017</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-deconinck-multipath-quic-00.txt">http://www.ietf.org/internet-drafts/draft-deconinck-multipath-quic-00.txt</a>&gt;</span>. </dd>
-<dt id="I-D.fairhurst-quic-ack-scaling">[I-D.fairhurst-quic-ack-scaling]</dt>
-        <dd>
-<span class="refAuthor">Fairhurst, G.</span><span class="refAuthor">, Custura, A.</span><span class="refAuthor">, and T. Jones</span>, <span class="refTitle">"Changing the Default QUIC ACK Policy"</span>, <span class="seriesInfo">Internet Draft, draft-fairhurst-quic-ack-scaling-00</span>, <time datetime="2020-01-29">29 January 2020</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-fairhurst-quic-ack-scaling-00.txt">http://www.ietf.org/internet-drafts/draft-fairhurst-quic-ack-scaling-00.txt</a>&gt;</span>. </dd>
-<dt id="I-D.ietf-quic-transport">[I-D.ietf-quic-transport]</dt>
-        <dd>
-<span class="refAuthor">Iyengar, J.</span><span class="refAuthor"> and M. Thomson</span>, <span class="refTitle">"QUIC: A UDP-Based Multiplexed and Secure Transport"</span>, <span class="seriesInfo">Internet Draft, draft-ietf-quic-transport-27</span>, <time datetime="2020-02-21">21 February 2020</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-ietf-quic-transport-27.txt">http://www.ietf.org/internet-drafts/draft-ietf-quic-transport-27.txt</a>&gt;</span>. </dd>
-<dt id="I-D.iyengar-quic-delayed-ack">[I-D.iyengar-quic-delayed-ack]</dt>
-        <dd>
-<span class="refAuthor">Iyengar, J.</span><span class="refAuthor"> and I. Swett</span>, <span class="refTitle">"Sender Control of Acknowledgement Delays in QUIC"</span>, <span class="seriesInfo">Internet Draft, draft-iyengar-quic-delayed-ack-00</span>, <time datetime="2020-01-23">23 January 2020</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-iyengar-quic-delayed-ack-00.txt">http://www.ietf.org/internet-drafts/draft-iyengar-quic-delayed-ack-00.txt</a>&gt;</span>. </dd>
-<dt id="I-D.kazuho-httpbis-priority">[I-D.kazuho-httpbis-priority]</dt>
-        <dd>
-<span class="refAuthor">Oku, K.</span><span class="refAuthor"> and L. Pardue</span>, <span class="refTitle">"Extensible Prioritization Scheme for HTTP"</span>, <span class="seriesInfo">Internet Draft, draft-kazuho-httpbis-priority-04</span>, <time datetime="2019-11-20">20 November 2019</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-kazuho-httpbis-priority-04.txt">http://www.ietf.org/internet-drafts/draft-kazuho-httpbis-priority-04.txt</a>&gt;</span>. </dd>
-<dt id="I-D.peon-httpbis-h2-priority-one-less">[I-D.peon-httpbis-h2-priority-one-less]</dt>
-        <dd>
-<span class="refAuthor">Thomson, M.</span><span class="refAuthor"> and R. Peon</span>, <span class="refTitle">"Deprecation of HTTP/2 Priority Signaling Hints"</span>, <span class="seriesInfo">Internet Draft, draft-peon-httpbis-h2-priority-one-less-00</span>, <time datetime="2019-07-25">25 July 2019</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-peon-httpbis-h2-priority-one-less-00.txt">http://www.ietf.org/internet-drafts/draft-peon-httpbis-h2-priority-one-less-00.txt</a>&gt;</span>. </dd>
-<dt id="LNBIP2020">[LNBIP2020]</dt>
-        <dd>
-<span class="refAuthor">Marx, R.</span><span class="refAuthor">, De Decker, T.</span><span class="refAuthor">, Quax, P.</span><span class="refAuthor">, and W. Lamotte</span>, <span class="refTitle">"Resource Multiplexing and Prioritization in HTTP/2 over TCP versus HTTP/3 over QUIC"</span>, <time datetime="2020-02">February 2020</time>. </dd>
-<dt id="PQUIC">[PQUIC]</dt>
-        <dd>
-<span class="refAuthor">De Coninck, Q.</span><span class="refAuthor">, Michel, F.</span><span class="refAuthor">, Piraux, M.</span><span class="refAuthor">, Given-Wilson, T.</span><span class="refAuthor">, Legay, A.</span><span class="refAuthor">, Pereira, O.</span><span class="refAuthor">, and O. Bonaventure</span>, <span class="refTitle">"Pluginizing QUIC"</span>, <span class="seriesInfo">Proceedings of the ACM Special Interest Group on Data Communication </span>, <time datetime="2019-08">August 2019</time>. </dd>
-<dt id="QUIC-FEC">[QUIC-FEC]</dt>
-        <dd>
-<span class="refAuthor">Michel, F.</span><span class="refAuthor">, De Coninck, Q.</span><span class="refAuthor">, and O. Bonaventure</span>, <span class="refTitle">"QUIC-FEC: Bringing the benefits of Forward Erasure Correction to QUIC"</span>, <time datetime="2019-05">May 2019</time>. </dd>
-<dt id="RFC1122">[RFC1122]</dt>
-        <dd>
-<span class="refAuthor">Braden, R., Ed.</span>, <span class="refTitle">"Requirements for Internet Hosts - Communication Layers"</span>, <span class="seriesInfo">STD 3</span>, <span class="seriesInfo">RFC 1122</span>, <span class="seriesInfo">DOI 10.17487/RFC1122</span>, <time datetime="1989-10">October 1989</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc1122">https://www.rfc-editor.org/info/rfc1122</a>&gt;</span>. </dd>
-<dt id="RFC2581">[RFC2581]</dt>
-        <dd>
-<span class="refAuthor">Allman, M.</span><span class="refAuthor">, Paxson, V.</span><span class="refAuthor">, and W. Stevens</span>, <span class="refTitle">"TCP Congestion Control"</span>, <span class="seriesInfo">RFC 2581</span>, <span class="seriesInfo">DOI 10.17487/RFC2581</span>, <time datetime="1999-04">April 1999</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2581">https://www.rfc-editor.org/info/rfc2581</a>&gt;</span>. </dd>
-<dt id="RFC3449">[RFC3449]</dt>
-        <dd>
-<span class="refAuthor">Balakrishnan, H.</span><span class="refAuthor">, Padmanabhan, V.</span><span class="refAuthor">, Fairhurst, G.</span><span class="refAuthor">, and M. Sooriyabandara</span>, <span class="refTitle">"TCP Performance Implications of Network Path Asymmetry"</span>, <span class="seriesInfo">BCP 69</span>, <span class="seriesInfo">RFC 3449</span>, <span class="seriesInfo">DOI 10.17487/RFC3449</span>, <time datetime="2002-12">December 2002</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc3449">https://www.rfc-editor.org/info/rfc3449</a>&gt;</span>. </dd>
-<dt id="RFC5690">[RFC5690]</dt>
-        <dd>
-<span class="refAuthor">Floyd, S.</span><span class="refAuthor">, Arcia, A.</span><span class="refAuthor">, Ros, D.</span><span class="refAuthor">, and J. Iyengar</span>, <span class="refTitle">"Adding Acknowledgement Congestion Control to TCP"</span>, <span class="seriesInfo">RFC 5690</span>, <span class="seriesInfo">DOI 10.17487/RFC5690</span>, <time datetime="2010-02">February 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc5690">https://www.rfc-editor.org/info/rfc5690</a>&gt;</span>. </dd>
-<dt id="RFC7540">[RFC7540]</dt>
-        <dd>
-<span class="refAuthor">Belshe, M.</span><span class="refAuthor">, Peon, R.</span><span class="refAuthor">, and M. Thomson, Ed.</span>, <span class="refTitle">"Hypertext Transfer Protocol Version 2 (HTTP/2)"</span>, <span class="seriesInfo">RFC 7540</span>, <span class="seriesInfo">DOI 10.17487/RFC7540</span>, <time datetime="2015-05">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7540">https://www.rfc-editor.org/info/rfc7540</a>&gt;</span>. </dd>
-<dt id="TCP-Options-BPF">[TCP-Options-BPF]</dt>
-        <dd>
-<span class="refAuthor">Tran, VH.</span><span class="refAuthor"> and O. Bonaventure</span>, <span class="refTitle">"Beyond socket options: making the Linux TCP stack truly extensible"</span>, <time datetime="2019-05">May 2019</time>. </dd>
-<dt id="TODO">[TODO]</dt>
+      <dd>
+<span class="refAuthor">Narayan, A.</span><span class="refAuthor">, Cangialosi, F.</span><span class="refAuthor">, Raghavan, D.</span><span class="refAuthor">, Goyal, P.</span><span class="refAuthor">, Narayana, S.</span><span class="refAuthor">, Mittal, R.</span><span class="refAuthor">, Alizadeh, M.</span><span class="refAuthor">, and H. Balakrishnan</span>, <span class="refTitle">"Restructuring Endpoint Congestion Control"</span>, <span class="seriesInfo">Proc. SIGCOMM 2018 </span>, <time datetime="2018-08">August 2018</time>. </dd>
+<dt id="eBPF">[eBPF]</dt>
       <dd>
 <span class="refAuthor">TODO, .</span>, <span class="refTitle">"TODO"</span>, <time datetime="2020-02">February 2020</time>. </dd>
+<dt id="I-D.deconinck-multipath-quic">[I-D.deconinck-multipath-quic]</dt>
+      <dd>
+<span class="refAuthor">Coninck, Q.</span><span class="refAuthor"> and O. Bonaventure</span>, <span class="refTitle">"Multipath Extension for QUIC"</span>, <span class="seriesInfo">Internet Draft, draft-deconinck-multipath-quic-00</span>, <time datetime="2017-10-30">30 October 2017</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-deconinck-multipath-quic-00.txt">http://www.ietf.org/internet-drafts/draft-deconinck-multipath-quic-00.txt</a>&gt;</span>. </dd>
+<dt id="I-D.fairhurst-quic-ack-scaling">[I-D.fairhurst-quic-ack-scaling]</dt>
+      <dd>
+<span class="refAuthor">Fairhurst, G.</span><span class="refAuthor">, Custura, A.</span><span class="refAuthor">, and T. Jones</span>, <span class="refTitle">"Changing the Default QUIC ACK Policy"</span>, <span class="seriesInfo">Internet Draft, draft-fairhurst-quic-ack-scaling-00</span>, <time datetime="2020-01-29">29 January 2020</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-fairhurst-quic-ack-scaling-00.txt">http://www.ietf.org/internet-drafts/draft-fairhurst-quic-ack-scaling-00.txt</a>&gt;</span>. </dd>
+<dt id="I-D.ietf-quic-transport">[I-D.ietf-quic-transport]</dt>
+      <dd>
+<span class="refAuthor">Iyengar, J.</span><span class="refAuthor"> and M. Thomson</span>, <span class="refTitle">"QUIC: A UDP-Based Multiplexed and Secure Transport"</span>, <span class="seriesInfo">Internet Draft, draft-ietf-quic-transport-27</span>, <time datetime="2020-02-21">21 February 2020</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-ietf-quic-transport-27.txt">http://www.ietf.org/internet-drafts/draft-ietf-quic-transport-27.txt</a>&gt;</span>. </dd>
+<dt id="I-D.iyengar-quic-delayed-ack">[I-D.iyengar-quic-delayed-ack]</dt>
+      <dd>
+<span class="refAuthor">Iyengar, J.</span><span class="refAuthor"> and I. Swett</span>, <span class="refTitle">"Sender Control of Acknowledgement Delays in QUIC"</span>, <span class="seriesInfo">Internet Draft, draft-iyengar-quic-delayed-ack-00</span>, <time datetime="2020-01-23">23 January 2020</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-iyengar-quic-delayed-ack-00.txt">http://www.ietf.org/internet-drafts/draft-iyengar-quic-delayed-ack-00.txt</a>&gt;</span>. </dd>
+<dt id="I-D.kazuho-httpbis-priority">[I-D.kazuho-httpbis-priority]</dt>
+      <dd>
+<span class="refAuthor">Oku, K.</span><span class="refAuthor"> and L. Pardue</span>, <span class="refTitle">"Extensible Prioritization Scheme for HTTP"</span>, <span class="seriesInfo">Internet Draft, draft-kazuho-httpbis-priority-04</span>, <time datetime="2019-11-20">20 November 2019</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-kazuho-httpbis-priority-04.txt">http://www.ietf.org/internet-drafts/draft-kazuho-httpbis-priority-04.txt</a>&gt;</span>. </dd>
+<dt id="I-D.peon-httpbis-h2-priority-one-less">[I-D.peon-httpbis-h2-priority-one-less]</dt>
+      <dd>
+<span class="refAuthor">Thomson, M.</span><span class="refAuthor"> and R. Peon</span>, <span class="refTitle">"Deprecation of HTTP/2 Priority Signaling Hints"</span>, <span class="seriesInfo">Internet Draft, draft-peon-httpbis-h2-priority-one-less-00</span>, <time datetime="2019-07-25">25 July 2019</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-peon-httpbis-h2-priority-one-less-00.txt">http://www.ietf.org/internet-drafts/draft-peon-httpbis-h2-priority-one-less-00.txt</a>&gt;</span>. </dd>
+<dt id="ICNP">[ICNP]</dt>
+      <dd>
+<span class="refAuthor">TODO, .</span>, <span class="refTitle">"TODO"</span>, <time datetime="2020-02">February 2020</time>. </dd>
+<dt id="LNBIP2020">[LNBIP2020]</dt>
+      <dd>
+<span class="refAuthor">Marx, R.</span><span class="refAuthor">, De Decker, T.</span><span class="refAuthor">, Quax, P.</span><span class="refAuthor">, and W. Lamotte</span>, <span class="refTitle">"Resource Multiplexing and Prioritization in HTTP/2 over TCP versus HTTP/3 over QUIC"</span>, <time datetime="2020-02">February 2020</time>. </dd>
+<dt id="PQUIC">[PQUIC]</dt>
+      <dd>
+<span class="refAuthor">De Coninck, Q.</span><span class="refAuthor">, Michel, F.</span><span class="refAuthor">, Piraux, M.</span><span class="refAuthor">, Rochet, F.</span><span class="refAuthor">, Given-Wilson, T.</span><span class="refAuthor">, Legay, A.</span><span class="refAuthor">, Pereira, O.</span><span class="refAuthor">, and O. Bonaventure</span>, <span class="refTitle">"Pluginizing QUIC"</span>, <span class="seriesInfo">Proceedings of SIGCOMM'19 </span>, <time datetime="2019-08">August 2019</time>. </dd>
+<dt id="QUIC-FEC">[QUIC-FEC]</dt>
+      <dd>
+<span class="refAuthor">Michel, F.</span><span class="refAuthor">, De Coninck, Q.</span><span class="refAuthor">, and O. Bonaventure</span>, <span class="refTitle">"QUIC-FEC: Bringing the benefits of Forward Erasure Correction to QUIC"</span>, <span class="seriesInfo">IFIP Networking 2019 </span>, <time datetime="2019-05">May 2019</time>. </dd>
+<dt id="Reno">[Reno]</dt>
+      <dd>
+<span class="refAuthor">TODO, .</span>, <span class="refTitle">"TODO"</span>, <time datetime="2020-02">February 2020</time>. </dd>
+<dt id="RFC1122">[RFC1122]</dt>
+      <dd>
+<span class="refAuthor">Braden, R., Ed.</span>, <span class="refTitle">"Requirements for Internet Hosts - Communication Layers"</span>, <span class="seriesInfo">STD 3</span>, <span class="seriesInfo">RFC 1122</span>, <span class="seriesInfo">DOI 10.17487/RFC1122</span>, <time datetime="1989-10">October 1989</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc1122">https://www.rfc-editor.org/info/rfc1122</a>&gt;</span>. </dd>
+<dt id="RFC2581">[RFC2581]</dt>
+      <dd>
+<span class="refAuthor">Allman, M.</span><span class="refAuthor">, Paxson, V.</span><span class="refAuthor">, and W. Stevens</span>, <span class="refTitle">"TCP Congestion Control"</span>, <span class="seriesInfo">RFC 2581</span>, <span class="seriesInfo">DOI 10.17487/RFC2581</span>, <time datetime="1999-04">April 1999</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2581">https://www.rfc-editor.org/info/rfc2581</a>&gt;</span>. </dd>
+<dt id="RFC3449">[RFC3449]</dt>
+      <dd>
+<span class="refAuthor">Balakrishnan, H.</span><span class="refAuthor">, Padmanabhan, V.</span><span class="refAuthor">, Fairhurst, G.</span><span class="refAuthor">, and M. Sooriyabandara</span>, <span class="refTitle">"TCP Performance Implications of Network Path Asymmetry"</span>, <span class="seriesInfo">BCP 69</span>, <span class="seriesInfo">RFC 3449</span>, <span class="seriesInfo">DOI 10.17487/RFC3449</span>, <time datetime="2002-12">December 2002</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc3449">https://www.rfc-editor.org/info/rfc3449</a>&gt;</span>. </dd>
+<dt id="RFC5690">[RFC5690]</dt>
+      <dd>
+<span class="refAuthor">Floyd, S.</span><span class="refAuthor">, Arcia, A.</span><span class="refAuthor">, Ros, D.</span><span class="refAuthor">, and J. Iyengar</span>, <span class="refTitle">"Adding Acknowledgement Congestion Control to TCP"</span>, <span class="seriesInfo">RFC 5690</span>, <span class="seriesInfo">DOI 10.17487/RFC5690</span>, <time datetime="2010-02">February 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc5690">https://www.rfc-editor.org/info/rfc5690</a>&gt;</span>. </dd>
+<dt id="RFC6962">[RFC6962]</dt>
+      <dd>
+<span class="refAuthor">Laurie, B.</span><span class="refAuthor">, Langley, A.</span><span class="refAuthor">, and E. Kasper</span>, <span class="refTitle">"Certificate Transparency"</span>, <span class="seriesInfo">RFC 6962</span>, <span class="seriesInfo">DOI 10.17487/RFC6962</span>, <time datetime="2013-06">June 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc6962">https://www.rfc-editor.org/info/rfc6962</a>&gt;</span>. </dd>
+<dt id="RFC7540">[RFC7540]</dt>
+      <dd>
+<span class="refAuthor">Belshe, M.</span><span class="refAuthor">, Peon, R.</span><span class="refAuthor">, and M. Thomson, Ed.</span>, <span class="refTitle">"Hypertext Transfer Protocol Version 2 (HTTP/2)"</span>, <span class="seriesInfo">RFC 7540</span>, <span class="seriesInfo">DOI 10.17487/RFC7540</span>, <time datetime="2015-05">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7540">https://www.rfc-editor.org/info/rfc7540</a>&gt;</span>. </dd>
+<dt id="TCP-Options-BPF">[TCP-Options-BPF]</dt>
+      <dd>
+<span class="refAuthor">Tran, VH.</span><span class="refAuthor"> and O. Bonaventure</span>, <span class="refTitle">"Beyond socket options: making the Linux TCP stack truly extensible"</span>, <span class="seriesInfo">IFIP Networking 2019 </span>, <time datetime="2019-05">May 2019</time>. </dd>
+<dt id="WebAssembly">[WebAssembly]</dt>
+      <dd>
+<span class="refAuthor">TODO, .</span>, <span class="refTitle">"TODO"</span>, <time datetime="2020-02">February 2020</time>. </dd>
+<dt id="Westwood">[Westwood]</dt>
+    <dd>
+<span class="refAuthor">TODO, .</span>, <span class="refTitle">"TODO"</span>, <time datetime="2020-02">February 2020</time>. </dd>
 </dl>
-</section>
 </section>
 <div id="acknowledgments">
 <section id="section-appendix.a">
       <h2 id="name-acknowledgments">
 <a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
       </h2>
-<p id="section-appendix.a-1">TODO acknowledge.<a href="#section-appendix.a-1" class="pilcrow">¶</a></p>
+<p id="section-appendix.a-1">This work was partially supported by the MQUIC project.<a href="#section-appendix.a-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">
