@@ -140,12 +140,12 @@ informative:
 
 By combining functions from the transport and security layers, QUIC brings
 possibilities to application and protocol designers. In this document, we
-leverage these functions and propose a solution to dynamically extend QUIC
-implementations. Our solution relies on QUIC Plugins that allow to
-tune or extend the QUIC protocol on a per-connection basis. These
-platform-independant plugins are executed inside a sandboxed environment
+leverage these possibilities and propose a solution to dynamically extend QUIC
+implementations. Our solution relies on QUIC Plugins that allow tuning or
+extending the QUIC protocol on a per-connection basis. These
+platform-independent plugins are executed inside a sandboxed environment
 which can be included in QUIC implementations. We describe how such plugins can
-be used in different use cases. 
+be used in different use cases.
 
 This document is a straw-man proposal. It aims at sparking discussions on the
 proposed approach. TODO(mp): Encourage a place (ml ?) to discuss the approach
@@ -225,8 +225,8 @@ through an Application Programming Interface (API), to the
 upper layer. This is illustrated in {{fig-api}}.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
- Layer N+1
-       --- +----------- API -----------+
+Layer N+1
+---------- +----------- API -----------+
 Management |                           |
 Protocol   |                           |
 <--------->|  Protocol implementation  |
@@ -236,7 +236,6 @@ Protocol   |                           |
                  \/         ||
 -----------------------------------
 Layer N-1
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 {: #fig-api title="A protocol implementation exposes an API to the upper layer"}
 
@@ -271,12 +270,12 @@ pack as many features as possible inside a protocol implementation that
 is considered as a blackbox, we consider a protocol implementation as
 an open system which can be safely extended to support new features in
 a safe and agile manner. Our vision is that such an implementation
-exposes an internal API which can be exploited by extensions that we call
+exposes an internal API which can be leveraged by extensions that we call
 Plugins in this document. This is illustrated in {{fig-plugins}}.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
- Layer N+1
-       --- +----------- API -----------+
+Layer N+1
+---------- +----------- API -----------+
 Management |  ( )       ( )       (x)<------ Plugin_A
 Protocol   |                           |
 <--------->|  Protocol implementation  |
@@ -290,6 +289,30 @@ Protocol   |                           |
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 {: #fig-plugins title="A pluginized protocol implementation exposes an internal API that enables plugins to dynamically extend its operation"}
 
+Using this API, a pluginized protocol can be extended to add new messages and to
+modify its Finite State Machine. {{extending-fsm}} illustrates a simple protocol
+with three states, i.e. S1, S2 and S3, and two messages, i.e. send(abc) and
+receive(def). This protocol implementation is extended by two plugins, as
+illustrated previously in {{fig-plugins}}. Those plugins add two states SA and
+SB and three new messages. Two messages start from S2 towards SA and SB, and one
+starts from SA towards SB.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ +----+   send(abc)  +----+   send(xyz)   +----+
+ | S1 |>------------>| S2 |>------------->| SA |
+ +----+              +v--v+               +v---+
+                      |  |                 |
+                      |  |                 | wait(1)
+                      |  |                 |
+                      |  |                 v
+ +----+  receive(def) |  |  receive(abc)  +----+
+ | S3 |<--------------/  \--------------->| SB |
+ +----+                                   +----+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{: #extending-fsm title="Extending the Finite State Machine of a pluginized protocol"}
+
+
 There are different ways of implementing the idea of dynamically
 extending protocols by using plugins. We list here some requirements
 that any solution should support:
@@ -300,12 +323,13 @@ implementations expose the same SNMP MIB.
 
 REQ2:
 : It should be possible to dynamically attach a plugin to one instance of an
-implementation. For instance, for a protocol that supports connections, it
-should be possible to associate different plugins to different connections.
+implementation. For instance, for a connection-oriented protocol, it
+should be possible to associate a plugin to a given connection. Different
+connections could have different sets of plugins.
 
 REQ3:
-: It should be possible to execute the same plugin on different and
-interoperable implementations of the same protocol.
+: It should be possible to execute the same plugin on different interoperable
+implementations of the same protocol.
 
 REQ4:
 : It should be possible for a protocol implementation to restrict the operations
@@ -329,25 +353,17 @@ and BGP {{ICNP}} and partially to TCP {{TCP-Options-BPF}}.
 
 # Pluginizing QUIC {#pquic}
 
-QUIC is a recently proposed transport protocol {{I-D.ietf-quic-transport}} that
-combines the service offered by TCP and TLS. QUIC encrypts all the application
-data and most of the packet headers, and thus prevents most interferences
-from middleboxes. QUIC encode control and application data using a flexible
-framing mechanism. In this section, we describe how we combine the approach
-proposed in {{archi}} to those features to propose Pluginized QUIC.
+[comment]: # TODO link this to the FSM figure
 
-We break down a QUIC implementation execution flow into generic subroutines.
-These are specified functions called protocol operations. These protocol
-operations implement a given part of the QUIC protocol, for example the
-acknowledgment generation or the computation of the round-trip-time. Some are
-generic and depend on a parameter, for instance parsing a QUIC frame is a
-generic operation that depends on the type of QUIC frame. This version of the
+Conceptually, we break down a QUIC implementation execution flow into generic
+subroutines. These are specified functions called protocol operations.
+These protocol operations implement a given part of the QUIC protocol, for
+example the acknowledgment generation or the computation of the round-trip-time.
+Some are generic and depend on a parameter, for instance parsing a QUIC frame is
+a generic operation that depends on the type of QUIC frame. This version of the
 document does not elaborate exhaustively on the protocol operations that compose
 a Pluginized QUIC implementation. The next versions of this document will
 work on defining a set of protocol operations.
-
-# What is a QUIC plugin ?
-TODO(mp): Change the section title, I don't like it
 
 A QUIC Plugin consists of platform-independent bytecode which modify or extend
 the behavior of a QUIC implementation. Adding the functionality of a QUIC Plugin
@@ -372,54 +388,52 @@ plugins to tune its underlying QUIC connection. QUIC peers can exchange and
 inject plugins over a QUIC connection, as described in {{exchanging-plugins}}.
 Users can set a default configuration to inject plugins on their devices.
 
+# Exchanging QUIC Plugins {#exchanging-plugins}
+
+Injecting QUIC Plugins locally in the underlying QUIC implementation allows the
+application to tune it to its needs. But some use-cases requires adapting the
+peer behavior. In those cases, being able to exchange plugins helps to fill
+this gap.
+
+QUIC offers both data multiplexing and encryption. Using those mechanisms, the
+QUIC Plugins used for a given connection could be safely transferred over this
+connection in a new dedicated stream, akin to the crypto stream. This does not
+impact the application data transfer, as illustrated in
+{{fig-exchanging-plugins}}. In this example, an HTTP/3 request is interleaved
+with the transfer from the server to the client of a QUIC Plugin controlling the
+acknowledgment policy.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ Client                             Server
+  |     (QUIC connection handshake)     |
+  |                                     |
+  |       STREAM[0, "HTTP/3 GET"]       |
+  |------------------------------------>|
+  |                                     |
+  |       STREAM[0, "200 OK..."]        |
+  |<------------------------------------|
+  |                                     |
+  |    PLUGIN["ack_delay", bytecode]    |
+  |<------------------------------------|
+  |                                     |
+  |       STREAM[0, "...", FIN]         |
+  |<------------------------------------|
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{: #fig-exchanging-plugins title="Interleaving a QUIC Plugin transfer over a QUIC
+connection"}
+
+A local policy could restrict the type of plugins that can be
+exchanged and injected, e.g. in terms of connection state accessed and in terms
+of protocol operations affected. This version of document does not describe
+further how the negotiation of QUIC Plugins takes place.
+
 # Examples of use-cases
 
 There exist several cases in which being able to modify the behavior of a QUIC
-peer is beneficial. {{PQUIC}} demonstrates how this approach can be used to
-deploy existing QUIC extensions such as Multipath QUIC
-{{I-D.deconinck-multipath-quic}} and {{QUIC-FEC}}. This first version of the
+peer, either locally or remotely, is beneficial. This first version of the
 document focus on enabling the extension of simpler QUIC mechanisms. Three of
 them are documented in this section. Contributions regarding new uses-cases are
 welcomed.
-
-## Application-driven stream scheduling
-
-QUIC streams allow the application to multiplex several bytestreams over a
-single QUIC connection. Yet, the QUIC specification does not provide a mechanism
-for exchanging prioritization information nor for indicating the relative
-priority of streams. As described in Section 2.3 of {{I-D.ietf-quic-transport}},
-A QUIC implementation SHOULD provide ways in which an application can indicate
-the relative priority of streams. A QUIC implementation could allow QUIC
-Plugins to extend or override its stream scheduler.
-
-
-For other applications over QUIC with a broad range of requirements, a flexible
-approach for defining the stream scheduling policy is key to best fit their
-needs. QUIC Plugin offer a flexible way to embed application knowledge inside
-the QUIC implementation.
-
-## Pluggable congestion controller
-
-There exists many congestion control algorithms. Each of them has
-been designed for a given context, i.e. a range of applications and a range of
-Internet paths. For instance, Reno {{Reno}} has been designed for optimizing the
-web use-case on common Internet paths. Westwood {{Westwood}} is a modification of
-Reno to better accommodate Internet paths with a high bandwidth-delay product,
-such as satellite links.
-
-Efforts to restructure congestion controllers within a common framework have
-been presented in past works such as {{CCP}}. Such a framework eases the
-development and maintenance of those algorithms. It also enables rapid
-prototyping and A/B testing.
-
-{{TCP-Options-BPF}} proposes a new TCP Option, leveraging the TCP-BPF
-framework, to negotiate the congestion controller to use.
-The QUIC specification does not specify a similar mechanism. Negotiating the
-congestion controller used allows one endpoint to tune the other, provided that
-it implements the algorithm. QUIC Plugins could allow the application to directly
-plug the required congestion controller and to exchange it with the other peer.
-This flexibility allows the application to choose the best congestion controller
-for its requirements.
 
 ## Tunable acknowledgments policy
 
@@ -444,41 +458,51 @@ embedding application knowledge, i.e. the characteristics of such bursts, inside
 the acknowledgment generation policy. Exchanging and injecting this plugin
 allows controlling the other peer behavior.
 
-# Injecting/accepting QUIC Plugins
+## Pluggable congestion controller
 
-Injecting a QUIC Plugin to a QUIC implementation requires several
-modifications. First, an execution environment is required to execute the
-plugin, as it does not consist of executable machine code. This environment
-recompiles the bytecode of QUIC Plugins and then execute the native
-instructions. The bytecode is a portable reduced instruction set, such
-as eBPF or WebAssembly bytecode. The plugin runs thus inside an isolated
-environment inside the QUIC implementation.
+There exists many congestion control algorithms. Each of them has
+been designed for a given context, i.e. a range of applications and a range of
+Internet paths. For instance, Reno {{Reno}} has been designed for optimizing the
+web use-case on common Internet paths. Westwood {{Westwood}} is a modification of
+Reno to better accommodate Internet paths with a high bandwidth-delay product,
+such as satellite links.
 
-The QUIC implementation is responsible for interacting with the plugin, i.e.
-running its bytecode and providing restricted access to the QUIC connection
-state. For example, a QUIC implementation that accepts plugins deciding whether
-an acknowledgment has to be sent should execute the plugin every time this
-decision is considered and provide access to relevant state for computing this
-decision. A QUIC implementation that accepts plugins implementing a congestion
-controller may provide write access to some state, for example the congestion
-window of a given path, so that the plugin can modify the state of the
-QUIC connection.
+Efforts to restructure congestion controllers within a common framework have
+been presented in past works such as {{CCP}}. Such a framework eases the
+development and maintenance of those algorithms. It also enables rapid
+prototyping and A/B testing.
 
-# Exchanging QUIC Plugins {#exchanging-plugins}
+{{TCP-Options-BPF}} proposes a new TCP Option, leveraging the TCP-BPF
+framework, to negotiate the congestion controller to use.
+The QUIC specification does not specify a similar mechanism. Negotiating the
+congestion controller used allows one endpoint to tune the other, provided that
+it implements the algorithm. QUIC Plugins could allow the application to directly
+plug the required congestion controller and to exchange it with the other peer.
+This flexibility allows the application to choose the best congestion controller
+for its requirements.
 
-Injecting QUIC Plugins locally in the underlying QUIC implementation allows the
-application to tune it to its needs. But some use-cases requires adapting the
-peer behavior. In those cases, being able to exchange plugins helps to fill
-that gap.
+## Application-driven stream scheduling
 
-In order to negotiate the use of QUIC Plugins, new transport parameters could be
-used to announce the plugins that should be injected. Each QUIC peer announces
-the plugins it supports and the plugins that it would like to inject to the
-other peer. A local policy could restrict the type of plugins that can be
-exchanged and injected. Once the QUIC handshake completes and the QUIC Plugins
-transport parameters have been exchanged, plugins exchange can take place next
-to the data transfer, using a new dedicated stream type akin to the crypto
-stream.
+QUIC streams allow the application to multiplex several bytestreams over a
+single QUIC connection. Yet, the QUIC specification does not provide a mechanism
+for exchanging prioritization information nor for indicating the relative
+priority of streams. As described in Section 2.3 of {{I-D.ietf-quic-transport}},
+"A QUIC implementation SHOULD provide ways in which an application can indicate
+the relative priority of streams". A QUIC implementation could allow QUIC
+Plugins to extend or override its stream scheduler.
+
+For other applications over QUIC with a broad range of requirements, a flexible
+approach for defining the stream scheduling policy is key to best fit their
+needs. QUIC Plugin offer a flexible way to embed application knowledge inside
+the QUIC implementation.
+
+## More advanced QUIC extensions
+
+Exposing more protocol operations through the API proposed to plugins by the
+QUIC implementation allows implementing more advanced QUIC Plugins. Each
+protocol operation offers flexibility over the QUIC implementation.
+{{PQUIC}} demonstrates how this approach can be used to implement Multipath QUIC
+{{I-D.deconinck-multipath-quic}} and {{QUIC-FEC}} entirely using plugins.
 
 # QUIC Plugins Authenticity
 
@@ -599,4 +623,4 @@ This document has no IANA actions.
 # Acknowledgments
 {:numbered="false"}
 
-This work was partially supported by the MQUIC project. 
+This work was partially supported by the MQUIC project.
