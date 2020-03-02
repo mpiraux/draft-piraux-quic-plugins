@@ -186,9 +186,6 @@ Layer N-1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 {: #fig-api title="A protocol implementation exposes an API to the upper layer"}
 
-On benefit of this approach is that if two implementations expose the
-{: #fig-api title="A protocol implementation exposes an API to the upper layer"}
-
 Different protocols expose different APIs. In the transport layer, the
 socket API is the most popular one. It was originally defined with
 the TCP and UDP protocols in mind, but has been extended to support
@@ -211,7 +208,7 @@ They have been useful in configuring and operating a
 wide range of protocol implementations. As different implementations expose
 the same abstraction, it becomes possible for operators to configure
 and manage different implementations by using the same tool in a unified
-manner. 
+manner.
 
 A protocol implementation exchanges messages with other implementations
 by leveraging the service provided by the underlying layer. For
@@ -251,7 +248,7 @@ the extensions that were accepted by the IETF and eventually deployed, there
 are many other extensions that correspond to specific applications or more
 restricted use cases. These extensions would be very valuable in specific
 environments, but their proponents never managed to convince the relevant
-IETF working group and implementers of their benefits. 
+IETF working group and implementers of their benefits.
 
 Besides the protocol extensions, we also abserve that there are some protocol
 behaviours that can be difficult to precisely express using a set of
@@ -291,7 +288,7 @@ scheduling.
 
 These examples illustrate the difficulty of precisely expressing
 complex behaviors in a few parameters that are exchanged inside
-packets. 
+packets.
 
 In this document, we propose a different approach to specify and implement
 protocol to better address the extensibility requirement. We focus on the
