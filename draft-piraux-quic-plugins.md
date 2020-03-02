@@ -83,15 +83,24 @@ informative:
     date: August 2018
   I-D.ietf-quic-transport:
   RFC1122:
+  RFC1213:
+  RFC4022:
   RFC2581:
   RFC3449:
   RFC5690:
   RFC6962:
   RFC7540:
+  RFC6897:
+  RFC6824:
+  RFC1323:
+  RFC2018:
+  RFC6458:
   I-D.fairhurst-quic-ack-scaling:
   I-D.iyengar-quic-delayed-ack:
   I-D.deconinck-multipath-quic:
   I-D.peon-httpbis-h2-priority-one-less:
+  I-D.ietf-taps-interface:
+  I-D.scharf-tcpm-yang-tcp:
   QUIC-FEC:
     author:
       - ins: F. Michel
@@ -155,11 +164,56 @@ proposed approach. TODO(mp): Encourage a place (ml ?) to discuss the approach
 # Introduction {#intro}
 
 Internet hosts rely on protocols to efficiently exchange
-information. Most protocols are designed assuming a layer model.
-A protocol provides a service to a user at the above layer. It
-interacts with this user through specific commands and responses that
-are often represented as an Application Programming Interface (API).
-Protocol implementations exchange messages with other implementations
+information. Most protocols are designed assuming a layered model.
+In such a layered protocol model, a protocol implementation
+is often represented as a black-box that uses the service provided
+by the underlying layer to offer an enhanced through, typically
+through an Application Programming Interface (API), to the
+upper layer. This is illustrated in {{fig-api}}.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Layer N+1
+---------- +----------- API -----------+
+Management |                           |
+Protocol   |                           |
+<--------->|  Protocol implementation  |
+           |                           |
+           +---------------------------+
+                 ||         /\
+                 \/         ||
+-----------------------------------
+Layer N-1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{: #fig-api title="A protocol implementation exposes an API to the upper layer"}
+
+On benefit of this approach is that if two implementations expose the
+{: #fig-api title="A protocol implementation exposes an API to the upper layer"}
+
+Different protocols expose different APIs. In the transport layer, the
+socket API is the most popular one. It was originally defined with
+the TCP and UDP protocols in mind, but has been extended to support
+SCTP {{RFC6458}} and Multipath TCP {{RFC6897}}. The TAPS working group
+is currently defining new APIs for the transport services {{I-D.ietf-taps-interface}}.
+
+An important benefit of havind standardised APIs is that if two
+implementations expose the same API, it is possible to replace one
+by the other without changing anything in the upper layers.
+
+Besides exposing an API to the layer above, many protocol implementations
+also expose an API to management protocols such as SNMP, IPFIX or NETCONF. For
+example, a TCP implementation exposes the variables and tables defined
+in the TCP part of the MIB-2 {{RFC1213}}{{RFC4022}}. There is ongoing
+work in developing a YANG model for TCP implementations {{I-D.scharf-tcpm-yang-tcp}}. This is illustrated in the left part of {{fig-api}}.
+
+These management APIs expose abstract configuration parameters and
+statistics about the key operations performed by a protocol implementation.
+They have been useful in configuring and operating a
+wide range of protocol implementations. As different implementations expose
+the same abstraction, it becomes possible for operators to configure
+and manage different implementations by using the same tool in a unified
+manner. 
+
+A protocol implementation exchanges messages with other implementations
 by leveraging the service provided by the underlying layer. For
 example, a TCP implementation interacts through the socket API and
 exchanges TCP segments with remote hosts through the underlying IP
@@ -171,8 +225,38 @@ and application protocols in two parts:
    from the layer above or to the reception of a specific message.
 
 This model has been used to represent a wide range of Internet
-protocols. However, there are some limits to the flexibility of
-these protocols as illustrated by recent discussions.
+protocols. Typically, the Finite State Machine and the syntax of the messages
+are described in a single or a series of documents that are heavily discussed
+within IETF working groups before reaching a consensus and getting a final
+specification. The ongoing work on the finalisation of the first version
+of the QUIC specification is a recent example of such efforts
+{{I-D.ietf-quic-transport}}.
+
+Once the first stable version of the specification of a protocol has been
+approved, IETF working groups typically observe the deployment of the
+protocol and improve it based on the received feedback. If the protocol
+is successful, it often triggers suggestions for extensions or improvements.
+These extensions are important for these successful protocols, but they
+often take a lot of time to deployed. Experience with TCP shows that extensions like selective acknowledgements {{RFC2018}}, support for large windows
+and timestamps {{RFC1323}} or more recently Multipath TCP {{RFC6824}} took more
+than a decade to be widely deployed. There are several considerations that
+can explain the difficulty of deploying TCP extensions, ranging from the
+fact that TCP is part of operating system kernels that evolve at a slower
+pace than applications to middlebox interference.
+
+Looking at other IETF protocols, we rarely observe successful protocols that
+have not been extended over the years. Thus, the need for extensibility could
+be seen as an invariant for a successful Internet protocol. In addition to
+the extensions that were accepted by the IETF and eventually deployed, there
+are many other extensions that correspond to specific applications or more
+restricted use cases. These extensions would be very valuable in specific
+environments, but their proponents never managed to convince the relevant
+IETF working group and implementers of their benefits. 
+
+Besides the protocol extensions, we also abserve that there are some protocol
+behaviours that can be difficult to precisely express using a set of
+parameters that are exchanged inside a message. Here are two recent
+examples that illustrate this difficulty.
 
 A first example is the transmission of acknowledgments in reliable
 transport protocols. There is a trade-off between the feedback provided
@@ -207,7 +291,12 @@ scheduling.
 
 These examples illustrate the difficulty of precisely expressing
 complex behaviors in a few parameters that are exchanged inside
-packets. In this document, we leverage the recent results in
+packets. 
+
+In this document, we propose a different approach to specify and implement
+protocol to better address the extensibility requirement. We focus on the
+QUIC protocol in this document, but similar ideas could be applied
+to other IETF protocols. We leverage the recent results in
 extending operating system kernels {{eBPF}} or web-browsers {{WebAssembly}}
 with virtual machines that execute bytecodes to propose a new
 approach to define complex behaviors inside protocols. We first
@@ -216,44 +305,7 @@ describe the general architecture of the proposed approach in
 approach could be applied to the next version of the QUIC protocol in
 {{pquic}}.
 
-# More extensible protocols {#archi}
-
-In a traditional layered protocol model, a protocol implementation
-is often represented as a black-box that uses the service provided
-by the underlying layer to offer an enhanced through, typically
-through an Application Programming Interface (API), to the
-upper layer. This is illustrated in {{fig-api}}.
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Layer N+1
----------- +----------- API -----------+
-Management |                           |
-Protocol   |                           |
-<--------->|  Protocol implementation  |
-           |                           |
-           +---------------------------+
-                 ||         /\
-                 \/         ||
------------------------------------
-Layer N-1
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-{: #fig-api title="A protocol implementation exposes an API to the upper layer"}
-
-On benefit of this approach is that if two implementations expose the
-same API, it possible to replace one by the other without changing anything
-in the upper layers. In practice, the API with the upper layer is not
-the only API that is exposed by a protocol implementation. For management
-and configuration purposes, many protocol implementations also expose
-a set of configuration variables that can be accessed and for some of
-them be modified by network management protocols such as SNMP or IPFIX.
-
-These management approaches expose abstract configuration parameters and
-statistics about the key operations performed by a protocol implementation.
-They have been useful in configuring and operating a
-wide range of protocol implementations. As different implementations expose
-the same abstraction, it becomes possible for operators to configure
-and manage different implementations by using the same tool in a unified
-manner.
+# Dynamically extensible protocol implementations {#archi}
 
 Experience with successful Internet protocols shows that once a protocol
 gets (widely) deployed, it attracts new use cases and proposals to
