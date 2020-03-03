@@ -192,7 +192,7 @@ the TCP and UDP protocols in mind, but has been extended to support
 SCTP {{RFC6458}} and Multipath TCP {{RFC6897}}. The TAPS working group
 is currently defining new APIs for the transport services {{I-D.ietf-taps-interface}}.
 
-An important benefit of havind standardised APIs is that if two
+An important benefit of having standardised APIs is that if two
 implementations expose the same API, it is possible to replace one
 by the other without changing anything in the upper layers.
 
@@ -225,7 +225,7 @@ This model has been used to represent a wide range of Internet
 protocols. Typically, the Finite State Machine and the syntax of the messages
 are described in a single or a series of documents that are heavily discussed
 within IETF working groups before reaching a consensus and getting a final
-specification. The ongoing work on the finalisation of the first version
+specification. The ongoing work on the finalization of the first version
 of the QUIC specification is a recent example of such efforts
 {{I-D.ietf-quic-transport}}.
 
@@ -234,7 +234,9 @@ approved, IETF working groups typically observe the deployment of the
 protocol and improve it based on the received feedback. If the protocol
 is successful, it often triggers suggestions for extensions or improvements.
 These extensions are important for these successful protocols, but they
-often take a lot of time to deployed. Experience with TCP shows that extensions like selective acknowledgements {{RFC2018}}, support for large windows
+often take a lot of time to deployed. Experience with TCP shows that extensions
+
+like selective acknowledgments {{RFC2018}}, support for large windows
 and timestamps {{RFC1323}} or more recently Multipath TCP {{RFC6824}} took more
 than a decade to be widely deployed. There are several considerations that
 can explain the difficulty of deploying TCP extensions, ranging from the
@@ -250,8 +252,8 @@ restricted use cases. These extensions would be very valuable in specific
 environments, but their proponents never managed to convince the relevant
 IETF working group and implementers of their benefits.
 
-Besides the protocol extensions, we also abserve that there are some protocol
-behaviours that can be difficult to precisely express using a set of
+Besides the protocol extensions, we also observe that there are some protocol
+behaviors that can be difficult to precisely express using a set of
 parameters that are exchanged inside a message. Here are two recent
 examples that illustrate this difficulty.
 
@@ -417,7 +419,7 @@ bytecode. This action of adding a QUIC plugin to a QUIC connection is referred
 to as injecting a QUIC Plugin. Injecting a plugin is limited to a given
 QUIC connection.
 
-Its bytecode is run inside a sandboxed execution environment. It has a
+Its bytecode is run inside a sandboxed execution environment. It has
 restricted access to the state of a QUIC connection through the Plugin API.
 
 The scope of a QUIC Plugin is restricted by both the limitations of this

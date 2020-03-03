@@ -120,3 +120,11 @@ MQUIC
 abc
 xyz
 extending-fsm
+protoop
+protoops
+extensibility
+scharf-tcpm-yang-tcp
+NETCONF
+ietf-taps-interface
+APIs
+implementers
