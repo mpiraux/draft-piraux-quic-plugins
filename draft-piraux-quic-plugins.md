@@ -552,7 +552,7 @@ QUIC streams allow the application to multiplex several bytestreams over a
 single QUIC connection. Yet, the QUIC specification does not provide a mechanism
 for exchanging prioritization information nor for indicating the relative
 priority of streams. As described in Section 2.3 of {{I-D.ietf-quic-transport}},
-"A QUIC implementation SHOULD provide ways in which an application can indicate
+"A QUIC implementation should provide ways in which an application can indicate
 the relative priority of streams". A QUIC implementation could allow QUIC
 Plugins to extend or override its stream scheduler.
 
@@ -578,10 +578,10 @@ sections.
 ## Based on Central Authorities
 
 This first approach leverages the central authorities commonly
-used to secure HTTPS. In this approach, each QUIC Plugin MUST be associated to
-some level of trust regarding its origin. A QUIC Plugin MAY be authenticated
+used to secure HTTPS. In this approach, each QUIC Plugin could be associated to
+some level of trust regarding its origin. A QUIC Plugin may be authenticated
 using a certificate, itself certified by a central authority.
-Consequently, a QUIC implementation supporting QUIC plugins MAY restrict their
+Consequently, a QUIC implementation supporting QUIC plugins may restrict their
 exchange and only accept plugins authenticated using the same certificate
 used for establishing the QUIC connection.
 
@@ -601,10 +601,10 @@ and verified by freely selected plugin validators. Those validators
 endorse verifying some publicly known safety or security properties. A
 QUIC endpoint can announce a set of conditions to accept a plugin as a
 first order logic formula bound to plugin validators. Whenever the other
-peer is willing to inject a plugin, it MUST send a (unforgeable) proof
+peer is willing to inject a plugin, it could send a (unforgeable) proof
 fulfilling the requirements expressed by this logic formula. If the
-requirements are met, then the endpoint MAY safely accept the plugin and
-MUST update its list of plugin supported. Compared to the central
+requirements are met, then the endpoint may safely accept the plugin and
+could update its list of plugin supported. Compared to the central
 authority approach, supported plugins are updated as part of the
 protocol design or as a consequence of any change to the default logic
 formula bound to plugin acceptance.
@@ -649,12 +649,12 @@ In the Plugin Transparency model, privacy may be achieved under careful
 treatment. One solution is to remove the list of supported plugins from the
 transport parameters, to remove the cache system and use the default policy to
 ask for a plugin endorsement by the validators. Within the default policy, at
-least one plugin validator MUST be tasked to verify that the plugin is not
+least one plugin validator could be tasked to verify that the plugin is not
 leaking distinguishable information to the PQUIC server, such as an obvious ID
 or a more subtle fingerprinting mechanism built-in to the plugin. Moreover, the
-validator MAY require source code availability and public knowledge of the
+validator may require source code availability and public knowledge of the
 pseudo-identity of its developer. To avoid leaking information to the network,
-the injection of a set of plugins (while being encrypted) SHOULD be
+the injection of a set of plugins (while being encrypted) should be
 indistinguishable from any other set of plugins.
 
 One other solution to have privacy while supporting the cache system and 0-RTT
@@ -664,14 +664,14 @@ validator which counts at each epoch the number of PQUIC user reporting to have
 the plugin in its cache. When a sufficient number of users have it, the plugin
 validator adds this plugin to its Merkle Tree, which would allow PQUIC endpoints
 to inject it to their peers. Similar to the previous solution, injecting a set
-of plugins SHOULD be indistinguishable from any other set of plugins to an
+of plugins should be indistinguishable from any other set of plugins to an
 on-path attacker.
 
 ## System Security
 
 We expect the plugin to run within a sandboxed environment with access control
 and resource management defined by the QUIC implementation running the plugin,
-and traps mechanism. The application using QUIC MUST define whitelist policies
+and traps mechanism. The application using QUIC could define whitelist policies
 for plugins to access the system resources such as a file descriptor or a
 directory. Only the application is able to modify its policies.
 
