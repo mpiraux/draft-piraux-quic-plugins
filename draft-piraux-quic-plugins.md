@@ -149,6 +149,7 @@ informative:
       - ins: O. Bonaventure
       - ins: O. Pereira
     title: Flexible Anonymous Network
+    seriesinfo: HotPETs
     date: July 2019
   DROPPING:
     author:
@@ -156,6 +157,7 @@ informative:
       - ins: O. Pereira
     title: Dropping on the Edge: Flexibility and Traffic Confirmation in Onion
     Routing Protocols
+    seriesinfo: Proceedings on Privacy Enhancing Technologies
     date: July 2018
 
 --- abstract
