@@ -319,7 +319,7 @@ pack as many features as possible inside a protocol implementation that
 is considered as a blackbox, we consider a protocol implementation as
 an open system which can be safely extended to support new features in
 a safe and agile manner. Our vision is that such an implementation
-exposes an internal API which can be leveraged by extensions that we call
+exposes an internal Plugin API which can be leveraged by extensions that we call
 Plugins in this document. This is illustrated in {{fig-plugins}}.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -331,21 +331,20 @@ Protocol   |                           |
            |       ( )       (x)<--------- Plugin_B
            +---------------------------+
                  ||         /\
-                 \/         ||
------------------------------------
-
-
+                 \/         ||            Legend
+-----------------------------------           ( ) Part of the Plugin API
+Layer N-1                                     (x) Plugin injected
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-{: #fig-plugins title="A pluginized protocol implementation exposes an internal API that enables plugins to dynamically extend its operation"}
+{: #fig-plugins title="A pluginized protocol implementation exposes a Plugin API that enables plugins to dynamically extend its operation"}
 
-Using this API, a pluginized protocol can be extended to add new messages and to
-modify its Finite State Machine. {{extending-fsm}} illustrates a simple protocol
-with three states, i.e. S1, S2 and S3, and two messages, i.e. send(abc) and
-receive(def). This protocol implementation is extended by two plugins, as
-illustrated previously in {{fig-plugins}}. Those plugins add two states SA and
-SB and three new messages. Two messages start from S2 towards SA and SB, and one
-starts from SA towards SB.
-
+Using this Plugin API, a pluginized protocol can be extended to add new messages
+and to modify its Finite State Machine, i.e. modify its states and transitions.
+{{extending-fsm}} illustrates a simple protocol with three states, i.e. S1, S2
+and S3, and two actions, i.e. send(abc) and receive(def). This protocol
+implementation is extended by two plugins, as illustrated previously in
+{{fig-plugins}}. Those plugins add two states SA and SB and three new actions.
+Two transitions start from S2 towards SA and SB, and one starts from SA towards
+SB.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
  +----+   send(abc)  +----+   send(xyz)   +----+
@@ -361,13 +360,12 @@ starts from SA towards SB.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 {: #extending-fsm title="Extending the Finite State Machine of a pluginized protocol"}
 
-
 There are different ways of implementing the idea of dynamically
 extending protocols by using plugins. We list here some requirements
 that any solution should support:
 
 REQ1:
-: Different implementations should expose the same plugin API, e.g. as different
+: Different implementations should expose the same Plugin API, e.g. as different
 implementations expose the same SNMP MIB.
 
 REQ2:
@@ -386,13 +384,13 @@ that a given plugin can execute.
 
 One possible way to realize this new architecture is to include a virtual
 machine inside each protocol implementation and
-expose a small plugin API accessible through the virtual machine.
+expose a small Plugin API accessible through the virtual machine.
 Several efficient virtual machines have been proposed and used in related
 environments {{eBPF}} {{WebAssembly}}. They provide a sandbox that controls the
 operations that the plugin can execute and the memory that it can access.
 Since the same virtual machine can be installed on different platforms, it
 becomes possible to execute the same plugin on different implementations of
-a given protocol that expose the same plugins API.
+a given protocol that expose the same Plugin API.
 
 The idea of extending protocols through plugins can be applied to
 different Internet protocols. In this document, we focus adding plugins
@@ -401,8 +399,6 @@ useful security features. A similar approach has been applied to OSPF
 and BGP {{ICNP}} and partially to TCP {{TCP-Options-BPF}}.
 
 # Pluginizing QUIC {#pquic}
-
-[comment]: # TODO link this to the FSM figure
 
 Conceptually, we break down a QUIC implementation execution flow into generic
 subroutines. These are specified functions called protocol operations.
@@ -421,21 +417,31 @@ bytecode. This action of adding a QUIC plugin to a QUIC connection is referred
 to as injecting a QUIC Plugin. Injecting a plugin is limited to a given
 QUIC connection.
 
-Its bytecode is run inside a sandboxed execution environment. It accesses to the
-state of a QUIC connection through a restricted API.
+Its bytecode is run inside a sandboxed execution environment. It has a
+restricted access to the state of a QUIC connection through the Plugin API.
 
 The scope of a QUIC Plugin is restricted by both the limitations of this
 execution environment, e.g. in terms of instruction set and quantity, and by the
-surface exposed by this API, e.g. the quantity of state that can be read from or
-written to by a plugin. The API also defines a set of protocol operations to
-which QUIC Plugins can be injected. For instance, a QUIC implementation might
-restrict QUIC Plugins injection to its acknowledgment generation policy, e.g.
-the protocol operation deciding whether sending an ACK frame is needed.
+surface exposed by the Plugin API, e.g. the quantity of state that can be read
+from or written to by a plugin. The API also defines a set of protocol
+operations to which QUIC Plugins can be injected. For instance, a QUIC
+implementation might restrict QUIC Plugins injection to its acknowledgment
+generation policy, e.g. the protocol operation deciding whether sending an ACK
+frame is needed.
 
 A QUIC Plugin can be injected by several means. The application can inject
 plugins to tune its underlying QUIC connection. QUIC peers can exchange and
 inject plugins over a QUIC connection, as described in {{exchanging-plugins}}.
 Users can set a default configuration to inject plugins on their devices.
+
+Considering again {{extending-fsm}} applied to QUIC Plugins, the messages are
+the protocol operations. The states of the FSM are defined by the QUIC
+connection state, which can be modified and extended during the execution of a
+protocol operation through the Plugin API. The transitions are calls to protocol
+operations.
+
+[comment]: # How to define nested protoop calls ?
+[comment]: # Should we show an example FSM for QUIC ?
 
 # Exchanging QUIC Plugins {#exchanging-plugins}
 
