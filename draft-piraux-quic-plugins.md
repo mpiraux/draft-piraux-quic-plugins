@@ -387,6 +387,10 @@ REQ4:
 : It should be possible for a protocol implementation to restrict the operations
 that a given plugin can execute.
 
+REQ5:
+: Plugins should be sandboxed and the application should be safe using
+them regarding memory and runtime traps
+
 One possible way to realize this new architecture is to include a virtual
 machine inside each protocol implementation and expose a small Plugin API
 accessible through the virtual machine.  Several efficient virtual machines have
