@@ -155,8 +155,7 @@ informative:
     author:
       - ins: F. Rochet
       - ins: O. Pereira
-    title: Dropping on the Edge: Flexibility and Traffic Confirmation in Onion
-    Routing Protocols
+    title: "Dropping on the Edge: Flexibility and Traffic Confirmation in Onion Routing Protocols"
     seriesinfo: Proceedings on Privacy Enhancing Technologies
     date: July 2018
 
@@ -206,7 +205,7 @@ protocols in mind, but has been extended to support SCTP {{RFC6458}} and
 Multipath TCP {{RFC6897}}. The TAPS working group is currently defining new APIs
 for the transport services {{I-D.ietf-taps-interface}}.
 
-An important benefit of having standardised APIs is that if two implementations
+An important benefit of having standardized APIs is that if two implementations
 expose the same API, it is possible to replace one by the other without changing
 anything in the upper layers.
 
@@ -246,10 +245,9 @@ approved, IETF working groups typically observe the deployment of the protocol
 and improve it based on the received feedback. If the protocol is successful, it
 often triggers suggestions for extensions or improvements.  These extensions are
 important for these successful protocols, but they often take a lot of time to
-be deployed. Experience with TCP shows that extensions.
-
-like selective acknowledgments {{RFC2018}}, support for large windows
-and timestamps {{RFC1323}} or more recently Multipath TCP {{RFC6824}} took more
+be deployed. Experience with TCP shows that extensions, such as selective
+acknowledgments {{RFC2018}}, support for large windows and timestamps
+{{RFC1323}} or more recently Multipath TCP {{RFC6824}} took more
 than a decade to be widely deployed. There are several considerations that
 can explain the difficulty of deploying TCP extensions, ranging from the
 fact that TCP is part of operating system kernels that evolve at a slower
@@ -301,7 +299,7 @@ behaviors in a few parameters that are exchanged inside packets.
 In this document, we propose a different approach to specify and implement
 protocol to better address the extensibility requirement. We focus on the QUIC
 protocol in this document, but similar ideas could be applied to other IETF
-protocols or networking systems {{FAN}}. We leverage the recent results in
+protocols or networking systems. We leverage the recent results in
 extending operating system kernels {{eBPF}} or web-browsers {{WebAssembly}} with
 virtual machines that execute bytecodes to propose a new approach to define
 complex behaviors inside protocols. We first describe the general architecture
@@ -404,8 +402,8 @@ is a recent and flexible protocol that includes useful security features. A
 similar approach has been applied to OSPF and BGP {{ICNP}} and partially to TCP
 {{TCP-Options-BPF}}. Other networking systems, such as the Tor network {{FAN}}
 or Cryptocurrency networks, may also benefit from extending the protocol through
-plugins. In some cases, the extensibility through plugins may help solving
-fundamental security issues {{DROPPING}} linked to both the Postel law
+plugins. In some cases, the extensibility through plugins may help to solve
+fundamental security issues {{DROPPING}} linked to both the Postel principle
 compliance and slow deployment processes.
 
 # Pluginizing QUIC {#pquic}
