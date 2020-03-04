@@ -639,9 +639,9 @@ proofs are available in {{PQUIC}}.
 
 ## Privacy
 
-In the central authority paradigm, there is no privacy. That is, the PQUIC
-server can set arbitrary plugins to the PQUIC client of any user as long as they
-provide a valid signature to them.
+In the central authority paradigm, the PQUIC server can set arbitrary
+plugins to the PQUIC client of any user as long as they provide a valid
+signature to them, including potential trackers.
 
 In the Plugin Transparency model, privacy may be achieved under careful
 treatment. One solution is to remove the list of supported plugins from the
