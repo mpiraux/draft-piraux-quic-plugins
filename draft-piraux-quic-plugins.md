@@ -59,6 +59,7 @@ informative:
     title: Pluginizing QUIC
     seriesinfo: Proceedings of SIGCOMM'19
     date: August 2019
+    target: https://pquic.org
   I-D.kazuho-httpbis-priority:
   LNBIP2020:
     author:
@@ -95,9 +96,11 @@ informative:
   RFC1323:
   RFC2018:
   RFC6458:
+  RFC6582:
+  RFC3552:
   I-D.fairhurst-quic-ack-scaling:
   I-D.iyengar-quic-delayed-ack:
-  I-D.deconinck-multipath-quic:
+  I-D.deconinck-quic-multipath:
   I-D.peon-httpbis-h2-priority-one-less:
   I-D.ietf-taps-interface:
   I-D.scharf-tcpm-yang-tcp:
@@ -120,29 +123,45 @@ informative:
     date: May 2019
   eBPF:
     author:
-      - ins: TODO
-    title: TODO
-    date: TODO
-  Reno:
-    author:
-      - ins: TODO
-    title: TODO
-    date: TODO
+      - ins: Matt Fleming
+    title: A thorough introduction to eBPF
+    seriesinfo: Linux Weekly News
+    date: December 2017
+    target: https://old.lwn.net/Articles/740157/
   Westwood:
     author:
-      - ins: TODO
-    title: TODO
-    date: TODO
+      - ins: C. Casetti
+      - ins: M. Gerla
+      - ins: S. Mascolo
+      - ins: M.Y. Sanadidi
+      - ins: R. Wang
+    title: "TCP Westwood: End-to-End Congestion Control for Wired/Wireless Networks"
+    seriesinfo: Wireless Networks 8
+    date: 2002
   WebAssembly:
     author:
-      - ins: TODO
-    title: TODO
-    date: TODO
+      - ins: A. Haas
+      - ins: A. Rossberg
+      - ins: D.L. Schuff
+      - ins: B.L. Titzer
+      - ins: M. Holman
+      - ins: D. Gohman
+      - ins: L. Wagner
+      - ins: A. Zakai
+      - ins: J.F. Bastien
+    title: "Bringing the web up to speed with WebAssembly"
+    seriesinfo: "Proceedings of the 38th ACM SIGPLAN Conference on Programming Language Design and Implementation"
+    date: June 2017
   ICNP:
     author:
-      - ins: TODO
-    title: TODO
-    date: TODO
+      - ins: T. Wirtgen
+      - ins: C. Dénos
+      - ins: Q. De Coninck
+      - ins: M. Jadin
+      - ins: O. Bonaventure
+    title: The Case for Pluginized Routing Protocols
+    seriesinfo: "2019 IEEE 27th International Conference on Network Protocols (ICNP)"
+    date: October 2019
   FAN:
     author:
       - ins: F. Rochet
@@ -162,7 +181,7 @@ informative:
 --- abstract
 
 By combining functions from the transport and security layers, QUIC brings
-possibilities to application and protocol designers. In this document, we
+new possibilities to application and protocol designers. In this document, we
 leverage these possibilities and propose a solution to dynamically extend QUIC
 implementations. Our solution relies on QUIC Plugins that allow tuning or
 extending the QUIC protocol on a per-connection basis. These
@@ -171,14 +190,14 @@ which can be included in QUIC implementations. We describe how such plugins can
 be used in different use cases.
 
 This document is a straw-man proposal. It aims at sparking discussions on the
-proposed approach. TODO(mp): Encourage a place (ml ?) to discuss the approach
+proposed approach.
 
 --- middle
 
 # Introduction {#intro}
 
 Internet hosts rely on protocols to efficiently exchange information. Most
-protocols are designed assuming a layered model.  In such a layered protocol
+protocols are designed assuming a layered model. In such a layered protocol
 model, a protocol implementation is often represented as a black-box that uses
 the service provided by the underlying layer to offer an enhanced Application
 Programming Interface (API) to the upper layer. This is illustrated in
@@ -218,7 +237,7 @@ This is illustrated in the left part of {{fig-api}}.
 
 These management APIs expose abstract configuration parameters and statistics
 about the key operations performed by a protocol implementation to offer more
-control to the upper layer.  They have been useful in configuring and operating
+control to the upper layer. They have been useful in configuring and operating
 a wide range of protocol implementations. As different implementations expose
 the same abstraction, it becomes possible for operators to configure and manage
 different implementations by using the same tool in a unified manner.
@@ -243,15 +262,15 @@ specification is a recent example of such efforts {{I-D.ietf-quic-transport}}.
 Once the first stable version of the specification of a protocol has been
 approved, IETF working groups typically observe the deployment of the protocol
 and improve it based on the received feedback. If the protocol is successful, it
-often triggers suggestions for extensions or improvements.  These extensions are
+often triggers suggestions for extensions or improvements. These extensions are
 important for these successful protocols, but they often take a lot of time to
 be deployed. Experience with TCP shows that extensions, such as selective
 acknowledgments {{RFC2018}}, support for large windows and timestamps
 {{RFC1323}} or more recently Multipath TCP {{RFC6824}} took more
 than a decade to be widely deployed. There are several considerations that
 can explain the difficulty of deploying TCP extensions, ranging from the
-fact that TCP is part of operating system kernels that evolve at a slower
-pace than applications to middlebox interference.
+fact that TCP is often part of operating system kernels, which evolve at a
+slower pace than applications, to middlebox interference.
 
 Looking at other IETF protocols, we rarely observe successful protocols that
 have not been extended over the years. Thus, the need for extensibility could
@@ -274,18 +293,17 @@ process them. Various heuristics have been proposed in TCP to generate these
 ACKs {{RFC1122}},{{RFC2581}},{{RFC3449}},{{RFC5690}}. These heuristics are
 deployed independently on receivers, but for some of them the senders need to
 adapt by at least taking into account the fact that some acknowledgments were
-delayed while measuring the round-trip-time.  A similar discussion has started
+delayed while measuring the round-trip-time. A similar discussion has started
 for QUIC. Given the flexibility of QUIC, researchers have proposed to define an
 acknowledgment strategy as a set of parameters that are exchanged in a new QUIC
 frame over each connection
 {{I-D.fairhurst-quic-ack-scaling}},{{I-D.iyengar-quic-delayed-ack}}. This brings
 more flexibility than in TCP where the limited size of the header made it
-impossible to exchange such information, but it also affects the round-trip-time
-estimation {{I-D.ietf-quic-transport}}.
+impossible to exchange such information.
 
 A second example in the application layer is the support for stream priorities
 in HTTP/2 {{RFC7540}}. Since HTTP/2 provides parallel streams, some application
-developers have expressed their need to be able to prioritize some streams over
+developers have expressed their need for prioritizing some streams over
 others. The HTTP/2 protocol defines such priorities, but they are not widely
 used and some have proposed to deprecate them
 {{I-D.peon-httpbis-h2-priority-one-less}}. In spite of this, a proposal for
@@ -297,7 +315,7 @@ These examples illustrate the difficulty of precisely expressing complex
 behaviors in a few parameters that are exchanged inside packets.
 
 In this document, we propose a different approach to specify and implement
-protocol to better address the extensibility requirement. We focus on the QUIC
+protocols to better address the extensibility requirement. We focus on the QUIC
 protocol in this document, but similar ideas could be applied to other IETF
 protocols or networking systems. We leverage the recent results in
 extending operating system kernels {{eBPF}} or web-browsers {{WebAssembly}} with
@@ -314,7 +332,7 @@ Experience with successful Internet protocols shows that once a protocol gets
 it. Most of the key Internet protocols, including IP, TCP, HTTP, DNS, BGP, OSPF,
 IS-IS, ... have been improved over the years. Today, the developer of an
 implementation of any of these protocols need to consult dozens of RFCs to find
-the complete specification of the protocol.
+their complete specification.
 
 Despite the importance of extensions to those key Internet protocols, we still
 do not design them under the assumption that they will evolve over decades and
@@ -322,9 +340,9 @@ that their implementations should be made agile. In this document, we propose a
 new organization for protocol implementations. Instead of trying to pack as many
 features as possible inside a protocol implementation that is considered as a
 blackbox, we consider a protocol implementation as an open system which can be
-safely extended to support new features in a safe and agile manner. Our vision
+extended to support new features in a safe and agile manner. Our vision
 is that such an implementation exposes an internal Plugin API which can be
-leveraged by extensions that we call Plugins in this document. This is
+leveraged by code extensions that we call Plugins in this document. This is
 illustrated in {{fig-plugins}}.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -336,34 +354,75 @@ Protocol   |                           |
            |       ( )       (x)<--------- Plugin_B
            +---------------------------+
                  ||         /\
-                 \/         ||            Legend
------------------------------------           ( ) Part of the Plugin API
-Layer N-1                                     (x) Plugin injected
+                 \/         ||          Legend:
+---------------------------------------    ( ) Part of the Plugin API
+Layer N-1                                  (x) Plugin injected
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 {: #fig-plugins title="A pluginized protocol implementation exposes a Plugin API that enables plugins to dynamically extend its operation"}
 
-Using this Plugin API, a pluginized protocol can be extended to add new messages
-and to modify its Finite State Machine, i.e. modify its states and transitions.
-{{extending-fsm}} illustrates a simple protocol with three states, i.e. S1, S2
-and S3, and two actions, i.e. send(abc) and receive(def). This protocol
-implementation is extended by two plugins, as illustrated previously in
-{{fig-plugins}}. Those plugins add two states SA and SB and three new actions.
-Two transitions start from S2 towards SA and SB, and one starts from SA towards
-SB.
+These Plugins extend the protocol by modifying its messages or its Finite State
+Machine.
+Consider {{extending-fsm}} as an example which illustrates a simple receiver
+with three states, i.e. Receiving, Data rcvd and Ack needed. This receiver
+waits until either two data packets have been received or 10 milliseconds have
+passed after received a data packet before sending an acknowledgment. Its
+implementation consists of three actions, receive(), send_ack() and wait().
+
+An application
+using this receiver could benefit from tuning this acknowledgment policy. For
+instance, another state could be chained between Data rcvd and Ack needed, so
+that acknowledgments can be batched for more than two data packets. Similarly,
+a more advanced heuristic could be added to generate acknowledgments, e.g.
+taking into account the size of data packets to detect transmission tails.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
- +----+   send(abc)  +----+   send(xyz)   +----+
- | S1 |>------------>| S2 |>------------->| SA |
- +----+              +v--v+               +v---+
-                      |  |                 |
-                      |  |                 | wait(1)
-                      |  |                 |
-                      |  |                 v
- +----+  receive(def) |  |  receive(abc)  +----+
- | S3 |<--------------/  \--------------->| SB |
- +----+                                   +----+
++-----------+    receive()    +-----------+
+| Receiving |>--------------->| Data rcvd |
++-----------+                 +-v-------v-+
+          ^                     |       |
+          |            wait(10) |       | receive()
+          |                     |       |
+          |                     |       |
+          |    send_ack()    +--v-------v-+
+          \-----------------<| Ack needed |
+                             +------------+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-{: #extending-fsm title="Extending the Finite State Machine of a pluginized protocol"}
+{: #extending-fsm title="Finite State Machine of a simple receiver"}
+
+Using this Plugin API, a protocol can be extended to add new messages
+and to modify its Finite State Machine, i.e. modify its states and transitions.
+This document defines such protocol as a pluginized protocol.
+{{extending-fsm-2}} illustrates how this simple receiver could be extended. In
+this example a new state is added so that a single acknowledgment can be sent
+for three received data packets.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
++-----------+  receive()  +-----------+  receive()  *+++++++++++++*
+| Receiving |>----------->| Data rcvd |>+++++++++++>| Data rcvd 2 |
++-----------+             +-v---------+             *+v+++++++++v+*
+          ^                 |                         !         !
+          |        wait(10) |                wait(5)  !         !
+          |                 |       /+++++++++++++++++/         !
+          |                 |       !                           !
+          |  send_ack()  +--v-------v-+        receive()        !
+          \-------------<| Ack needed |<++++++++++++++++++++++++/
+                         +------------+
+Legend:
+  >+++> Transition added by a Plugin
+  *+++*
+  | S | State added by a Plugin
+  *+++*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{: #extending-fsm-2 title="Extended Finite State Machine of a pluginized receiver"}
+
+Due to space constraints, the case of adding a new action is not depicted in
+{{extending-fsm-2}}. In this example, a new action data_not_full() could be
+added by a Plugin. This action is taken whenever the last received data packet
+received is not full, indicating the end of a series of packets. Transitions
+from the states Data rcvd and Data rcvd 2 to the state Ack needed with this
+action could be added by this Plugin.
+
+## Requirements
 
 There are different ways of implementing the idea of dynamically extending
 protocols by using plugins. We list here some requirements that any solution
@@ -389,45 +448,45 @@ that a given plugin can execute.
 
 REQ5:
 : Plugins should be sandboxed and the application should be safe using
-them regarding memory and runtime traps
+them, for instance regarding memory corruption and runtime traps.
 
 One possible way to realize this new architecture is to include a virtual
 machine inside each protocol implementation and expose a small Plugin API
-accessible through the virtual machine.  Several efficient virtual machines have
+accessible through the virtual machine. Several efficient virtual machines have
 been proposed and used in related environments {{eBPF}} {{WebAssembly}}. They
-provide a sandbox that controls the operations that the plugin can execute and
-the memory that it can access.  Since the same virtual machine can be installed
+provide a sandbox controlling the operations a plugin can execute and
+the memory that it can access. Since the same virtual machine can be provided
 on different platforms, it becomes possible to execute the same plugin on
-different implementations of a given protocol that expose the same Plugin API.
+different implementations of a given protocol exposing the same Plugin API.
 
 The idea of extending protocols through plugins can be applied to different
-Internet protocols. In this document, we focus adding plugins to QUIC since it
-is a recent and flexible protocol that includes useful security features. A
+Internet protocols. In this document, we focus on adding plugins to QUIC since
+it is a recent and flexible protocol that includes useful security features. A
 similar approach has been applied to OSPF and BGP {{ICNP}} and partially to TCP
 {{TCP-Options-BPF}}. Other networking systems, such as the Tor network {{FAN}}
-or Cryptocurrency networks, may also benefit from extending the protocol through
-plugins. In some cases, the extensibility through plugins may help to solve
-fundamental security issues {{DROPPING}} linked to both the Postel principle
-compliance and slow deployment processes.
+or Cryptocurrency networks, may also benefit from extending their protocols
+through plugins. In some cases, the extensibility through plugins may help to
+solve fundamental security issues {{DROPPING}} linked to both compliance to the
+Postel principle and slow deployment processes.
 
 # Pluginizing QUIC {#pquic}
 
 Conceptually, we break down a QUIC implementation execution flow into generic
-subroutines. These are specified functions called protocol operations.  These
+subroutines. These are specified functions called protocol operations. These
 protocol operations implement a given part of the QUIC protocol, for example the
-acknowledgment generation or the computation of the round-trip-time.  Some are
+acknowledgment generation or the computation of the round-trip-time. Some are
 generic and depend on a parameter, for instance parsing a QUIC frame is a
 generic operation that depends on the type of QUIC frame. This version of the
-document does not elaborate exhaustively on the protocol operations that compose
+document does not elaborate exhaustively on the protocol operations composing
 a Pluginized QUIC implementation. The next versions of this document will work
 on defining a set of protocol operations.
 
-A QUIC Plugin consists of platform-independent bytecode which modify or extend
-the behavior of a QUIC implementation. Adding the functionality of a QUIC Plugin
-consists in adding or replacing a set of protocol operations implemented by this
-bytecode. This action of adding a QUIC plugin to a QUIC connection is referred
-to as injecting a QUIC Plugin. Injecting a plugin is limited to a given QUIC
-connection.
+A QUIC Plugin consists of platform-independent bytecode which modifies or
+extends the behavior of a QUIC implementation. Adding the functionality of a
+QUIC Plugin consists in adding or replacing a set of protocol operations
+implemented by this bytecode. This action of adding a QUIC Plugin to a QUIC
+connection is referred to as injecting a QUIC Plugin. Injecting a plugin is
+limited to a given QUIC connection.
 
 Its bytecode is run inside a sandboxed execution environment. It has
 restricted access to the state of a QUIC connection through the Plugin API.
@@ -435,7 +494,7 @@ restricted access to the state of a QUIC connection through the Plugin API.
 The scope of a QUIC Plugin is restricted by both the limitations of this
 execution environment, e.g. in terms of instruction set and quantity, and by the
 surface exposed by the Plugin API, e.g. the quantity of state that can be read
-from or written to by a plugin. The API also defines a set of protocol
+from or written to by a plugin. The Plugin API also defines a set of protocol
 operations to which QUIC Plugins can be injected. For instance, a QUIC
 implementation might restrict QUIC Plugins injection to its acknowledgment
 generation policy, e.g. the protocol operation deciding whether sending an ACK
@@ -444,9 +503,9 @@ frame is needed.
 A QUIC Plugin can be injected by several means. The application can inject
 plugins to tune its underlying QUIC connection. QUIC peers can exchange and
 inject plugins over a QUIC connection, as described in {{exchanging-plugins}}.
-Users can set a default configuration to inject plugins on their devices.
+Users can set a default configuration injecting plugins on their devices.
 
-Considering again {{extending-fsm}} applied to QUIC Plugins, the messages are
+Considering again {{extending-fsm}} applied to QUIC Plugins, the actions are
 the protocol operations. The states of the FSM are defined by the QUIC
 connection state, which can be modified and extended during the execution of a
 protocol operation through the Plugin API. The transitions are calls to protocol
@@ -457,8 +516,8 @@ operations.
 
 # Exchanging QUIC Plugins {#exchanging-plugins}
 
-Injecting QUIC Plugins locally in the underlying QUIC implementation allows the
-application to tune it to its needs. But some use-cases requires adapting the
+Injecting QUIC Plugins locally allows the application to tune the underlying
+QUIC implementation to its needs. But some use-cases requires adapting the
 peer behavior. In those cases, being able to exchange plugins helps to fill
 this gap.
 
@@ -494,22 +553,25 @@ exchanged and injected, e.g. in terms of connection state accessed and in terms
 of protocol operations affected. This version of document does not describe
 further how the negotiation of QUIC Plugins takes place.
 
+QUIC Plugins could also be transferred out of band. The application using QUIC
+can then inject these plugins locally.
+
 # Examples of use-cases
 
 There exist several cases in which being able to modify the behavior of a QUIC
 peer, either locally or remotely, is beneficial. This first version of the
-document focus on enabling the extension of simpler QUIC mechanisms. Three of
-them are documented in this section. Contributions regarding new uses-cases are
-welcomed.
+document focus on enabling the extension of simple QUIC mechanisms. Three of
+them are documented in this section. Contributions to this document regarding
+new uses-cases are welcomed.
 
 ## Tunable acknowledgments policy
 
 The large diversity of Internet paths also counts networks involving a
-significant path asymmetry. Those paths often impact the ability of the receiver
-to provide feedback to the sender. The performance of transport protocols such
-as TCP has been studied in depth and reported in {{RFC3449}}. A method for
-controlling the rate of receiver feedback of TCP, i.e. the rate of ACKs, has
-been proposed in {{RFC5690}}.
+significant path asymmetry. Those paths require the receiver to adapt its
+feedback rate to the sender. The performance of transport protocols such
+as TCP on those paths has been studied in depth and reported in {{RFC3449}}. A
+method for controlling the rate of receiver feedback of TCP, i.e. the rate of
+ACKs, has been proposed in {{RFC5690}}.
 
 Proposals for controlling the acknowledgment policy of QUIC already exist.
 {{I-D.fairhurst-quic-ack-scaling}} proposes a change to the default policy for
@@ -529,10 +591,10 @@ allows controlling the other peer behavior.
 
 There exists many congestion control algorithms. Each of them has
 been designed for a given context, i.e. a range of applications and a range of
-Internet paths. For instance, Reno {{Reno}} has been designed for optimizing the
-web use-case on common Internet paths. Westwood {{Westwood}} is a modification of
-Reno to better accommodate Internet paths with a high bandwidth-delay product,
-such as satellite links.
+Internet paths. For instance, NewReno {{RFC6582}} has been designed for
+optimizing the web use-case on common Internet paths. Westwood {{Westwood}} is a
+modification of NewReno to better accommodate Internet paths with a high
+bandwidth-delay product, such as satellite links.
 
 Efforts to restructure congestion controllers within a common framework have
 been presented in past works such as {{CCP}}. Such a framework eases the
@@ -558,7 +620,7 @@ priority of streams. As described in Section 2.3 of {{I-D.ietf-quic-transport}},
 the relative priority of streams". A QUIC implementation could allow QUIC
 Plugins to extend or override its stream scheduler.
 
-For other applications over QUIC with a broad range of requirements, a flexible
+For other applications using QUIC with a broad range of requirements, a flexible
 approach for defining the stream scheduling policy is key to best fit their
 needs. QUIC Plugin offer a flexible way to embed application knowledge inside
 the QUIC implementation.
@@ -569,15 +631,17 @@ Exposing more protocol operations through the API proposed to plugins by the
 QUIC implementation allows implementing more advanced QUIC Plugins. Each
 protocol operation offers flexibility over the QUIC implementation.
 {{PQUIC}} demonstrates how this approach can be used to implement Multipath QUIC
-{{I-D.deconinck-multipath-quic}} and {{QUIC-FEC}} entirely using plugins.
+{{I-D.deconinck-quic-multipath}} and {{QUIC-FEC}} entirely using plugins.
 
 # QUIC Plugins Authenticity
 
-Several possibilities exist under different threat models and offer
-different security properties. Two of them are described in the following
-sections.
+When exchanging and injecting QUIC Plugins, guaranteeing there authenticity and
+safety is important. This section describes two possible approaches for this
+purpose, the first guarantees the authenticity of the QUIC Plugins, the second
+guarantee both their authenticity and an open set of security properties with
+regard to QUIC Plugins.
 
-## Based on Central Authorities
+## Central Authorities
 
 This first approach leverages the central authorities commonly
 used to secure HTTPS. In this approach, each QUIC Plugin could be associated to
@@ -585,9 +649,10 @@ some level of trust regarding its origin. A QUIC Plugin may be authenticated
 using a certificate, itself certified by a central authority.
 Consequently, a QUIC implementation supporting QUIC plugins may restrict their
 exchange and only accept plugins authenticated using the same certificate
-used for establishing the QUIC connection.
+used for establishing the QUIC connection. This approach only guarantees the
+authenticity of a QUIC Plugin.
 
-## Based on Plugin Transparency
+## Plugin Transparency
 
 This second approach is presented in the {{PQUIC}} research paper, and
 suggests going beyond the restrictive approach of a centralized trust
@@ -603,84 +668,39 @@ and verified by freely selected plugin validators. Those validators
 endorse verifying some publicly known safety or security properties. A
 QUIC endpoint can announce a set of conditions to accept a plugin as a
 first order logic formula bound to plugin validators. Whenever the other
-peer is willing to inject a plugin, it could send a (unforgeable) proof
+peer is willing to inject a plugin, it sends a (unforgeable) proof
 fulfilling the requirements expressed by this logic formula. If the
 requirements are met, then the endpoint may safely accept the plugin and
-could update its list of plugin supported. Compared to the central
+could update its list of supported plugin. Compared to the central
 authority approach, supported plugins are updated as part of the
 protocol design or as a consequence of any change to the default logic
 formula bound to plugin acceptance.
 
-# Security Discussion
+## Comparing Certificate Transparency and Plugin Transparency
 
-## Central Authorities VS Plugin Transparency
-
-The central authority model is ubiquitous to secure modern application layer
-protocols such as HTTPS. Yet, flaws such as forged certificates exist within the
-centralized trust model that, at several occasions, conducted HTTPS connections
-to suffer from the threats which they were expected to defend. Moreover, the
-poor resilience of the system can cause a denial of access to content, for
-instance when an expired certificate is not renewed.
-
-Certificate Transparency {{RFC6962}} is an attempt to address the structural
+Certificate Transparency (CT) {{RFC6962}} is an attempt to address the structural
 issues hidden within the central trust assumption and prevent mistakes, rogue
 certificates and rogue authorities from weakening the system. Plugin
-Transparency bears similarities to Certificate Transparency (CT). First, its
+Transparency bears similarities to Certificate Transparency. First, its
 motivations are drawn from the same conclusions regarding the danger of central
 trust models. Second, similar to CT, it is based on distributing trust
 assumptions to secure the system. However, Plugin Transparency offers stronger
 properties and eliminates the independent monitoring entities which hold the
-resource endowment to continuously monitor the CT log in behalf of certificate
-owners. Indeed, our design offers the independent developers checking for
-spurious plugins in O(log(N)) with N the size of the log (instead of O(N) in
-CT's design). Our design also offers secure human-readable plugins names that
-unambiguously authenticate them and non-equivocation from rogue plugin
-validators. Our design is more resilient to failure by offering several
-validators that can be trusted within the logic formula. For example, a PQUIC
+resource endowment to continuously monitor the CT log on the behalf of
+certificate owners. Indeed, our design offers the independent developers
+checking for spurious plugins in O(log(N)) with N the size of the log (instead
+of O(N) in CT's design). Our design also offers secure human-readable plugin
+names that unambiguously authenticate them and non-equivocation from rogue
+plugin validators. Our design is more resilient to failure by offering several
+validators that can be trusted within the logic formula. For example, a QUIC
 peer may request a proof bound to any combination of plugin validators. The
 detail of Plugin Transparency, including performance considerations and security
 proofs are available in {{PQUIC}}.
 
-## Privacy
-
-In the central authority paradigm, the PQUIC server can set arbitrary
-plugins to the PQUIC client of any user as long as they provide a valid
-signature to them, including potential trackers.
-
-In the Plugin Transparency model, privacy may be achieved under careful
-treatment. One solution is to remove the list of supported plugins from the
-transport parameters, to remove the cache system and use the default policy to
-ask for a plugin endorsement by the validators. Within the default policy, at
-least one plugin validator could be tasked to verify that the plugin is not
-leaking distinguishable information to the PQUIC server, such as an obvious ID
-or a more subtle fingerprinting mechanism built-in to the plugin. Moreover, the
-validator may require source code availability and public knowledge of the
-pseudo-identity of its developer. To avoid leaking information to the network,
-the injection of a set of plugins (while being encrypted) should be
-indistinguishable from any other set of plugins.
-
-One other solution to have privacy while supporting the cache system and 0-RTT
-injection of plugins is to announce a set of plugins common to most PQUIC
-users. One method to achieve it would be to bind PQUIC users to a special plugin
-validator which counts at each epoch the number of PQUIC user reporting to have
-the plugin in its cache. When a sufficient number of users have it, the plugin
-validator adds this plugin to its Merkle Tree, which would allow PQUIC endpoints
-to inject it to their peers. Similar to the previous solution, injecting a set
-of plugins should be indistinguishable from any other set of plugins to an
-on-path attacker.
-
-## System Security
-
-We expect the plugin to run within a sandboxed environment with access control
-and resource management defined by the QUIC implementation running the plugin,
-and traps mechanism. The application using QUIC could define whitelist policies
-for plugins to access the system resources such as a file descriptor or a
-directory. Only the application is able to modify its policies.
-
-The user of the application can also set such policies, then the resulting
-access authorization depends on the intersection of both set of policies.
-
 # Security Considerations
+
+The next versions of this document will elaborate on security considerations
+following the guidelines of {{RFC3552}}.
 
 # IANA Considerations
 
@@ -692,4 +712,6 @@ This document has no IANA actions.
 # Acknowledgments
 {:numbered="false"}
 
+The authors of Pluginizing QUIC are thanked again for their work that initiated
+this proposal.
 This work was partially supported by the MQUIC project.
