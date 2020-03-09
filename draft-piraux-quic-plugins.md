@@ -180,14 +180,14 @@ informative:
 
 --- abstract
 
-By combining functions from the transport and security layers, QUIC brings
-new possibilities to application and protocol designers. In this document, we
-leverage these possibilities and propose a solution to dynamically extend QUIC
-implementations. Our solution relies on QUIC Plugins that allow tuning or
-extending the QUIC protocol on a per-connection basis. These
-platform-independent plugins are executed inside a sandboxed environment
-which can be included in QUIC implementations. We describe how such plugins can
-be used in different use cases.
+The extensibility of Internet protocols is a key factor to their success. Yet,
+their implementations are often not designed with agility in mind. In this
+document, we leverage the features of the QUIC protocol and propose a solution
+to dynamically extend QUIC implementations. Our solution relies on QUIC Plugins
+that allow tuning and extending the QUIC protocol on a per-connection basis. These
+platform-independent plugins are executed inside a sandboxed environment which
+can be included in QUIC implementations.  We describe how such plugins can be
+used in different use cases.
 
 This document is a straw-man proposal. It aims at sparking discussions on the
 proposed approach.
@@ -365,7 +365,7 @@ Machine.
 Consider {{extending-fsm}} as an example which illustrates a simple receiver
 with three states, i.e. Receiving, Data rcvd and Ack needed. This receiver
 waits until either two data packets have been received or 10 milliseconds have
-passed after received a data packet before sending an acknowledgment. Its
+passed after receiving a data packet before sending an acknowledgment. Its
 implementation consists of three actions, receive(), send_ack() and wait().
 
 An application
@@ -376,16 +376,16 @@ a more advanced heuristic could be added to generate acknowledgments, e.g.
 taking into account the size of data packets to detect transmission tails.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-+-----------+    receive()    +-----------+
-| Receiving |>--------------->| Data rcvd |
-+-----------+                 +-v-------v-+
-          ^                     |       |
-          |            wait(10) |       | receive()
-          |                     |       |
-          |                     |       |
-          |    send_ack()    +--v-------v-+
-          \-----------------<| Ack needed |
-                             +------------+
++-----------+  receive()  +-----------+
+| Receiving |>----------->| Data rcvd |
++-----------+             +-v-------v-+
+          ^                 |       |
+          |        wait(10) |       | receive()
+          |                 |       |
+          |                 |       |
+          |  send_ack()  +--v-------v-+
+          \-------------<| Ack needed |
+                         +------------+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 {: #extending-fsm title="Finite State Machine of a simple receiver"}
 
@@ -417,10 +417,10 @@ Legend:
 
 Due to space constraints, the case of adding a new action is not depicted in
 {{extending-fsm-2}}. In this example, a new action data_not_full() could be
-added by a Plugin. This action is taken whenever the last received data packet
-received is not full, indicating the end of a series of packets. Transitions
-from the states Data rcvd and Data rcvd 2 to the state Ack needed with this
-action could be added by this Plugin.
+added by a Plugin. This action could be taken whenever the last received data
+packet is not full, indicating the end of a series of packets.
+Transitions from the states Data rcvd and Data rcvd 2 to the state Ack needed
+with this action could be added by this Plugin.
 
 ## Requirements
 
@@ -700,7 +700,8 @@ proofs are available in {{PQUIC}}.
 # Security Considerations
 
 The next versions of this document will elaborate on security considerations
-following the guidelines of {{RFC3552}}.
+following the guidelines of {{RFC3552}}. Moreover, this document will consider
+privacy as part of those considerations.
 
 # IANA Considerations
 
