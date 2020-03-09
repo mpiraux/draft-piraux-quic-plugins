@@ -86,14 +86,14 @@ informative:
   RFC1122:
   RFC1213:
   RFC4022:
-  RFC2581:
+  RFC5681:
   RFC3449:
   RFC5690:
   RFC6962:
   RFC7540:
   RFC6897:
   RFC6824:
-  RFC1323:
+  RFC7323:
   RFC2018:
   RFC6458:
   RFC6582:
@@ -155,7 +155,7 @@ informative:
   ICNP:
     author:
       - ins: T. Wirtgen
-      - ins: C. Dénos
+      - ins: C. Denos
       - ins: Q. De Coninck
       - ins: M. Jadin
       - ins: O. Bonaventure
@@ -266,7 +266,7 @@ often triggers suggestions for extensions or improvements. These extensions are
 important for these successful protocols, but they often take a lot of time to
 be deployed. Experience with TCP shows that extensions, such as selective
 acknowledgments {{RFC2018}}, support for large windows and timestamps
-{{RFC1323}} or more recently Multipath TCP {{RFC6824}} took more
+{{RFC7323}} or more recently Multipath TCP {{RFC6824}} took more
 than a decade to be widely deployed. There are several considerations that
 can explain the difficulty of deploying TCP extensions, ranging from the
 fact that TCP is often part of operating system kernels, which evolve at a
@@ -290,7 +290,7 @@ A first example is the transmission of acknowledgments in reliable transport
 protocols. There is a trade-off between the feedback provided by the
 acknowledgments and the resources (bandwidth and CPU) required to generate and
 process them. Various heuristics have been proposed in TCP to generate these
-ACKs {{RFC1122}},{{RFC2581}},{{RFC3449}},{{RFC5690}}. These heuristics are
+ACKs {{RFC1122}},{{RFC5681}},{{RFC3449}},{{RFC5690}}. These heuristics are
 deployed independently on receivers, but for some of them the senders need to
 adapt by at least taking into account the fact that some acknowledgments were
 delayed while measuring the round-trip-time. A similar discussion has started
